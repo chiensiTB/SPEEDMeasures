@@ -1,0 +1,83 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>test_perkins_and_will_mongo_connect</name>
+  <uid>519e01fb-c80a-4afb-b1b5-7bb57dce88b3</uid>
+  <version_id>157459e5-4c0b-4fee-a6ca-0e383c56250e</version_id>
+  <version_modified>20170113T062454Z</version_modified>
+  <xml_checksum>3A32F700</xml_checksum>
+  <class_name>TestPerkinsAndWillMongoConnect</class_name>
+  <display_name>Test Perkins and Will Mongo Connect</display_name>
+  <description>This is just a proof of concept test to see if a measure can successfully connect to a mongo datastore on another machine instance in the same Amazon Web Services Virtual Private Cloud.  This is very minimal code with no robust checking</description>
+  <modeler_description>It does not even send anything related to the model.  It just sends a simple pagkage at the end of every run, just to test if things really work.</modeler_description>
+  <arguments>
+    <argument>
+      <name>space_name</name>
+      <display_name>New space name</display_name>
+      <description>This name will be used as the name of the new space.</description>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+    </argument>
+  </arguments>
+  <provenances/>
+  <tags>
+    <tag>Reporting.QAQC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ModelMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Sensitivity Analysis</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Use Case</name>
+      <value>Automatic Report Generation</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.11.5</identifier>
+        <min_compatible>1.11.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>B8272027</checksum>
+    </file>
+    <file>
+      <filename>test_perkins_and_will_mongo_connect_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>DA2A1009</checksum>
+    </file>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C4F35230</checksum>
+    </file>
+  </files>
+</measure>

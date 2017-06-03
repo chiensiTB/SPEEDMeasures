@@ -1,0 +1,99 @@
+<measure>
+  <schema_version>3.0</schema_version>
+  <name>push_custom_results_to_mongo_db</name>
+  <uid>b3553b5c-59f9-4bf5-8a74-1dfb184857a0</uid>
+  <version_id>3074d616-52d9-4294-9036-46888c06dfd5</version_id>
+  <version_modified>20170209T063541Z</version_modified>
+  <xml_checksum>345CCCA5</xml_checksum>
+  <class_name>PushCustomResultsToMongoDB</class_name>
+  <display_name>PushCustomResultsToMongoDB</display_name>
+  <description>Will push a user-customized report to MongoDB</description>
+  <modeler_description>I think that you will like this one.</modeler_description>
+  <arguments/>
+  <provenances/>
+  <tags>
+    <tag>Reporting.QAQC</tag>
+  </tags>
+  <attributes>
+    <attribute>
+      <name>Measure Type</name>
+      <value>ReportingMeasure</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Apply Measure Now</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>OpenStudio Application</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Parametric Analysis Tool</value>
+      <datatype>string</datatype>
+    </attribute>
+    <attribute>
+      <name>Intended Software Tool</name>
+      <value>Analysis Spreadsheet</value>
+      <datatype>string</datatype>
+    </attribute>
+  </attributes>
+  <files>
+    <file>
+      <filename>example_model.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>A0199A45</checksum>
+    </file>
+    <file>
+      <filename>PrimarySchoolCRB1.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>B18870FE</checksum>
+    </file>
+    <file>
+      <filename>test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>639E13A8</checksum>
+    </file>
+    <file>
+      <filename>report.html</filename>
+      <filetype>html</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3501204C</checksum>
+    </file>
+    <file>
+      <filename>report_out.html</filename>
+      <filetype>html</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B9601D2</checksum>
+    </file>
+    <file>
+      <filename>push_custom_results_to_mongo_db_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>11D6A9FF</checksum>
+    </file>
+    <file>
+      <version>
+        <software_program>OpenStudio</software_program>
+        <identifier>1.11.5</identifier>
+        <min_compatible>1.11.5</min_compatible>
+      </version>
+      <filename>measure.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>script</usage_type>
+      <checksum>555D82C6</checksum>
+    </file>
+    <file>
+      <filename>Output.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8FD7643A</checksum>
+    </file>
+  </files>
+</measure>
