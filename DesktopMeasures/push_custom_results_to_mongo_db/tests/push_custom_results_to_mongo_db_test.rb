@@ -130,7 +130,8 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
 
 
   def test_quick_debugging
-    # This is a reporting measure so no need to run the model again, instead pull the outputs directly to test the measure
+    # This is a reporting measure so no need to run the model again, instead pull the outputs directly to test the measure,
+    # run test_good_argument_values first!
     test_name = "quick_debugging"
 
     # create an instance of the measure
@@ -147,6 +148,7 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     epw_path = epw_path_default
 
     assert(File.exist?(model_TestOSM_HVAC))
+    # Please run test_good_argument_values first!!!!, otherwise this measure
     assert(File.exist?(sql_path("test_good_argument_values")))
     assert(File.exist?(epw_path))
 
@@ -154,14 +156,14 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
 
     runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_TestOSM_HVAC))
     runner.setLastEpwFilePath(epw_path)
-    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path("test_good_argument_values")))
 
     puts "testing quick debugging"
 
     # temporarily change directory to the run directory and run the measure
     start_dir = Dir.pwd
     begin
-      Dir.chdir(run_dir(test_name))
+      Dir.chdir(run_dir("test_good_argument_values"))
 
       # run the measure
       measure.run(runner, argument_map)
@@ -174,11 +176,8 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     end
 
     # make sure the report file exists
-    assert(File.exist?(report_path(test_name)))
+    assert(File.exist?(report_path("test_good_argument_values")))
   end
-
-
-
   end
 
 =begin
@@ -237,6 +236,7 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     # make sure the report file exists
     assert(File.exist?(report_path(test_name)))
   end
+end
 =end
 
-end
+

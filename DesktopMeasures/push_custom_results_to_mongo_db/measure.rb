@@ -8,6 +8,7 @@ require 'securerandom'
 #require 'mongo'
 require 'time'
 require 'sqlite3'
+require 'pp'
 require_relative 'resources/Output'
 require "#{File.dirname(__FILE__)}/resources/os_lib_reporting"
 require "#{File.dirname(__FILE__)}/resources/os_lib_schedules"
@@ -169,7 +170,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     state = epwFile.stateProvinceRegion
 
     buildingType = building.suggestedStandardsBuildingTypes
-    puts buildingType #in order to make this work (return 1 value) it has to be set apriori todo: look into a measure to set the type?
+    #puts buildingType #in order to make this work (return 1 value) it has to be set apriori todo: look into a measure to set the type?
 
     #climes = site.climateZones
     #puts climes.get
@@ -184,7 +185,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     total_site_eui = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary', "TableName='Site and Source Energy' AND RowName='Total Site Energy' AND ColumnName='Energy Per Conditioned Building Area'")
     time_setpoint_not_met_during_occupied_heating = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary', "TableName='Comfort and Setpoint Not Met Summary' AND RowName='Time Setpoint Not Met During Occupied Heating' AND ColumnName='Facility'")
     time_setpoint_not_met_during_occupied_cooling = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary', "TableName='Comfort and Setpoint Not Met Summary' AND RowName='Time Setpoint Not Met During Occupied Cooling' AND ColumnName='Facility'")
-    time_setpoint_not_met_during_occupied_hours = time_setpoint_not_met_during_occupied_heating + time_setpoint_not_met_during_occupied_cooling
+    time_setpoint_not_met_during_occupied_hours = time_setpoint_not_met_during_occupied_heating.to_s + time_setpoint_not_met_during_occupied_cooling.to_s
     heating_elec = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Heating' AND ColumnName='Electricity'" )
     cooling_elec = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Cooling' AND ColumnName='Electricity'" )
     lighting_elec = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Interior Lighting' AND ColumnName='Electricity'" )
@@ -409,7 +410,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       pp BuildingEnergyPerformanceTables
     end
 
-    BuildingEnergyPerformanceTables(sqlFile)
+    #BuildingEnergyPerformanceTables(sqlFile)
 
 
     output = OutputVariables.new
@@ -538,6 +539,10 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
     outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
     outObj.output_variables = output
+
+    puts "this is sql path \n"
+    puts outObj.sql_path
+
     outObj.EUI = sqlFile.netSiteEnergy.get / model.getBuilding.floorArea #always GJ/m2 by default in the db, it will be converted on the front end
     outObj.EUI_units = "GJ/m2"
     outObj.EUI = total_site_eui #or we can have it in MJ/m2 if we want
