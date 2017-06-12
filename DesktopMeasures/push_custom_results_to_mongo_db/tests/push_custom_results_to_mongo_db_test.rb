@@ -78,7 +78,7 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
 
     cli_path = OpenStudio.getOpenStudioCLI
     cmd = "\"#{cli_path}\" run -w \"#{osw_path}\""
-    puts cmd
+    #puts cmd
     system(cmd)
   end
   # create test files if they do not exist when the test first runs
@@ -132,7 +132,6 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
   def test_quick_debugging
     # This is a reporting measure so no need to run the model again, instead pull the outputs directly to test the measure,
     # run test_good_argument_values first!
-    test_name = "quick_debugging"
 
     # create an instance of the measure
     measure = PushCustomResultsToMongoDB.new
@@ -157,8 +156,6 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_TestOSM_HVAC))
     runner.setLastEpwFilePath(epw_path)
     runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path("test_good_argument_values")))
-
-    puts "testing quick debugging"
 
     # temporarily change directory to the run directory and run the measure
     start_dir = Dir.pwd

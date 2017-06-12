@@ -300,12 +300,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     demandEndUseComponentsSummaryTable.end_uses_total_end_uses_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Total End Uses' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
 
-=begin
-    puts time_peak_electricity,time_peak_natural_gas,end_uses_heating_elect,end_uses_heating_gas,end_uses_cooling_elect,end_uses_cooling_gas,end_uses_interior_lighting_elect,end_uses_interior_lighting_gas,end_uses_exterior_lighting_elect,end_uses_exterior_lighting_gas
-    puts end_uses_interior_equipment_elect,end_uses_interior_equipment_gas,end_uses_exterior_equipment_elect,end_uses_exterior_equipment_gas,end_uses_fans,end_uses_fans,end_uses_pumps,end_uses_pumps,end_uses_heat_rejection,end_uses_heat_rejection,end_uses_humidification,end_uses_humidification
-    puts end_uses_heat_recovery,end_uses_heat_recovery,end_uses_water_systems,end_uses_water_systems,end_uses_refrigeration,end_uses_refrigeration,end_uses_generators,end_uses_generators,end_uses_total_end_uses,end_uses_total_end_uses
-
-=end
 
     sourceEnergyUseComponentsSummary = SourceEnergyUseComponentsSummary.new
 
@@ -369,30 +363,36 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     sourceEnergyUseComponentsSummary.source_end_use_total_source_energy_end_use_components_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Total Source Energy End Use Components' AND ColumnName = 'Source Natural Gas'")
 
-
-    def BuildingEnergyPerformanceTables(sqlFile)
+    def building_energy_performance_tables(sqlFile)
 
       months = ["January","February","March","April","May","June","July","August","September","October","November","December","Annual Sum or Average"]
       reportNames = ['BUILDING ENERGY PERFORMANCE - ELECTRICITY','BUILDING ENERGY PERFORMANCE - NATURAL GAS','BUILDING ENERGY PERFORMANCE - ELECTRICITY PEAK DEMAND','BUILDING ENERGY PERFORMANCE - NATURAL GAS PEAK DEMAND']
 
-      @BuildingEnergyPerformanceTables = {}
+      buildingEnergyPerformanceTables = {}
 
       reportNames.each do |report|
 
         # Categories are Electricity:Facility, InteriorLights:Electricity get them all by only querying for one month
 
-        categories = sqlFile.execute("SELECT ColumnName FROM TabularDataWithStrings WHERE ReportName = '#{report}' AND RowName = 'July'")
+        categories = sqlFile.execAndReturnVectorOfString("SELECT ColumnName FROM TabularDataWithStrings WHERE ReportName = '#{report}' AND RowName = 'July'")
 
         dataByCategory = {}
-        BuildingPerformanceData[report] = dataByCategory
 
-        categories.each do |category|
+        buildingEnergyPerformanceTables[report] = dataByCategory
+
+        #puts buildingEnergyPerformanceTables
+
+        categories.get.each do |category|
           category = category[0]
           dataByCategory[category] = []
 
           months.each do |month|
 
-            value = sqlFile.execute("SELECT Value FROM TabularDataWithStrings WHERE RowName = '#{month}' AND ReportName = '#{report}' AND ColumnName = '#{category}'")
+            puts "Value here"
+
+            vectorString = sqlFile.execAndReturnVectorOfString("SELECT Value FROM TabularDataWithStrings WHERE RowName = '#{month}' AND ReportName = '#{report}' AND ColumnName = '#{category}'")
+
+            value = sqlFile.execAndReturnFirstString("SELECT Value FROM TabularDataWithStrings WHERE RowName = '#{month}' AND ReportName = '#{report}' AND ColumnName = '#{category}'")
 
             ## Create a key value pair of data and month
 
@@ -407,11 +407,154 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
       end
 
-      pp BuildingEnergyPerformanceTables
+      pp buildingEnergyPerformanceTables
     end
 
-    #BuildingEnergyPerformanceTables(sqlFile)
+    #OpenStudio::EndUseCategoryType.getValues.each do |category_type|
+    #  puts category_str = OpenStudio::EndUseCategoryType.new(category_type).valueDescription
+    #end
 
+    def monthly_overview_section(sqlFile, runner, name_only = false)
+      # array to hold tables
+      monthly_tables = {}
+
+      # gather data for section
+      @monthly_overview_section = {}
+      @monthly_overview_section[:title] = 'Monthly Overview'
+      @monthly_overview_section[:tables] = monthly_tables
+
+      # stop here if only name is requested this is used to populate display name for arguments
+      if name_only == true
+        return @monthly_overview_section
+      end
+
+      # sorted end use array to pass in for stacked bar chart order
+      end_use_order = []
+      month_order = %w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
+
+      # loop through fuels for consumption tables
+      OpenStudio::EndUseFuelType.getValues.each do |fuel_type|
+        # get fuel type and units
+        fuel_type = OpenStudio::EndUseFuelType.new(fuel_type).valueDescription
+        if fuel_type == 'Electricity'
+          units = "\"kWh\""
+          unit_str = 'kWh'
+        else
+          units = "\"Million Btu\""
+          unit_str = 'MBtu'
+        end
+
+        # create table
+        monthly_fuel = {}
+        monthly_fuel[:title] = "#{fuel_type} Consumption (#{unit_str})"
+        monthly_fuel[:header] = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Total']
+        monthly_fuel[:units] = []
+        monthly_fuel[:data] = []
+        #monthly_fuel[:chart] = []
+
+        # has to hold monthly totals for fuel
+        monthly_total = {}
+
+        # rest counter for each fuel type
+        site_energy_use = 0.0
+        fuel_type_aggregation = 0.0
+
+        # loop through end uses
+        OpenStudio::EndUseCategoryType.getValues.each do |category_type|
+          category_str = OpenStudio::EndUseCategoryType.new(category_type).valueDescription
+          end_use_order << category_str
+          row_data = [category_str]
+          fuel_and_category_aggregation = 0.0
+
+          OpenStudio::MonthOfYear.getValues.each do |month|
+            if month >= 1 && month <= 12
+              if !sqlFile.energyConsumptionByMonth(OpenStudio::EndUseFuelType.new(fuel_type),
+                                                   OpenStudio::EndUseCategoryType.new(category_type),
+                                                   OpenStudio::MonthOfYear.new(month)).empty?
+                valInJ = sqlFile.energyConsumptionByMonth(OpenStudio::EndUseFuelType.new(fuel_type),
+                                                          OpenStudio::EndUseCategoryType.new(category_type),
+                                                          OpenStudio::MonthOfYear.new(month)).get
+                fuel_and_category_aggregation += valInJ
+                valInUnits = OpenStudio.convert(valInJ, 'J', unit_str).get
+
+                # do we want to register every value?
+                # month_str = OpenStudio::MonthOfYear.new(month).valueDescription
+                # prefix_str = OpenStudio::toUnderscoreCase("#{fuel_type}_#{category_str}_#{month_str}")
+                # runner.registerValue("#{prefix_str.downcase.gsub(" ","_")}_ip",valInUnits,unit_str)
+
+                # populate hash for monthly totals
+                month = monthly_fuel[:header][month]
+                if monthly_total[month]
+                  monthly_total[month] += valInJ
+                else
+                  monthly_total[month] = valInJ
+                end
+
+                #monthly_fuel[:chart] << JSON.generate(label: category_str, label_x: month, value: valInUnits)
+                # for some reason sometimes 0 comes through here, show as blank of 0
+                if valInUnits > 0
+                  row_data << valInUnits.round(2)
+                else
+                  row_data << ''
+                end
+
+              else
+                row_data << ''
+                # populate hash for monthly totals
+                month = monthly_fuel[:header][month]
+                if monthly_total[month]
+                  # do nothing
+                else
+                  monthly_total[month] = 0.0
+                end
+
+              end
+            end
+          end
+
+          prefix_str = OpenStudio.toUnderscoreCase("#{fuel_type}_#{category_str}")
+          runner.registerValue("#{prefix_str}_ip", OpenStudio.convert(fuel_and_category_aggregation, 'J', unit_str).get, unit_str)
+
+          fuel_type_aggregation += fuel_and_category_aggregation
+          row_total = OpenStudio.convert(fuel_and_category_aggregation, 'J', unit_str).get
+          if row_total == 0
+            row_data << ''
+          else
+            row_data << row_total.round(2)
+          end
+          monthly_fuel[:data] << row_data
+        end
+
+        runner.registerValue(OpenStudio.toUnderscoreCase("#{fuel_type}_ip"),
+                             OpenStudio.convert(fuel_type_aggregation, 'J', unit_str).get,
+                             unit_str)
+        site_energy_use += fuel_type_aggregation
+
+        # add row for totals
+        row_data = ['Total']
+        monthly_total.each do |k, v|
+          if OpenStudio.convert(v, 'J', unit_str).get == 0
+            row_data << ''
+          else
+            row_data << OpenStudio.convert(v, 'J', unit_str).get.round(2)
+          end
+        end
+
+        table_total = OpenStudio.convert(site_energy_use, 'J', unit_str).get.round(2)
+        row_data << table_total
+        monthly_fuel[:data] << row_data
+
+        # add table to array of tables if table total is > 0
+        if table_total > 0
+          monthly_tables << monthly_fuel
+        end
+      end
+
+      File.write("C:\\Users\\szilasia\\Box Sync\\SPEED\\OSMeasures\\DesktopMeasures\\push_custom_results_to_mongo_db\\tests\\output\\monthly_tables1.txt", monthly_tables)
+
+    end
+
+    monthly_overview_section(sqlFile, runner, name_only = false)
 
     output = OutputVariables.new
     envelope = EnvelopeDefinition.new
@@ -540,9 +683,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
     outObj.output_variables = output
 
-    puts "this is sql path \n"
-    puts outObj.sql_path
-
     outObj.EUI = sqlFile.netSiteEnergy.get / model.getBuilding.floorArea #always GJ/m2 by default in the db, it will be converted on the front end
     outObj.EUI_units = "GJ/m2"
     outObj.EUI = total_site_eui #or we can have it in MJ/m2 if we want
@@ -552,10 +692,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.demandEndUseComponentsSummaryTable = demandEndUseComponentsSummaryTable
     outObj.sourceEnergyUseComponentsSummary = sourceEnergyUseComponentsSummary
 
-    pp outObj.to_hash
-
     web_asset_path = OpenStudio.getSharedResourcesPath() / OpenStudio::Path.new("web_assets")
-
 
     # get the weather file run period (as opposed to design day run period)
     ann_env_pd = nil
