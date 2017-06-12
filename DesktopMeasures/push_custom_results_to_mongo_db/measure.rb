@@ -5,8 +5,9 @@ require 'pathname'
 require 'erb'
 require 'json'
 require 'securerandom'
-require 'mongo'
+#require 'mongo'
 require 'time'
+require 'sqlite3'
 require_relative 'resources/Output'
 require "#{File.dirname(__FILE__)}/resources/os_lib_reporting"
 require "#{File.dirname(__FILE__)}/resources/os_lib_schedules"
@@ -56,22 +57,22 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     args << building_type
 
     return args
-  end 
-  
+  end
+
   # return a vector of IdfObject's to request EnergyPlus objects needed by the run method
   def energyPlusOutputRequests(runner, user_arguments)
     super(runner, user_arguments)
-    
+
     result = OpenStudio::IdfObjectVector.new
-    
-    # use the built-in error checking 
+
+    # use the built-in error checking
     if !runner.validateUserArguments(arguments(), user_arguments)
       return result
     end
-    
+
     request = OpenStudio::IdfObject.load("Output:Variable,,Site Outdoor Air Drybulb Temperature,Hourly;").get
     result << request
-    
+
     return result
   end
 
@@ -92,13 +93,33 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     val
   end
-  
+
+  # sql_query method when string expected
+  def sql_query_string(runner, sql, report_name, query)
+    val = nil
+    result = sql.execAndReturnFirstString("SELECT Value FROM TabularDataWithStrings WHERE ReportName='#{report_name}' AND #{query}")
+    if result.empty?
+      runner.registerWarning("Query failed for #{report_name} and #{query}")
+    else
+      begin
+        val = result.get
+      rescue
+        val = nil
+        puts 'Query result.get failed'
+        runner.registerWarning('Query result.get failed')
+      end
+    end
+
+    val
+  end
+
+
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    post = true
+    post = false
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
-    # use the built-in error checking 
+    # use the built-in error checking
     if !runner.validateUserArguments(arguments(), user_arguments)
       return false
     end
@@ -153,7 +174,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #climes = site.climateZones
     #puts climes.get
 
-    
+
     # SQL calls
     # put data into the local variable 'output', all local variables are available for erb to use when configuring the input html file
     window_to_wall_ratio_north = sql_query(runner, sqlFile, 'InputVerificationandResultsSummary', "TableName='Window-Wall Ratio' AND RowName='Gross Window-Wall Ratio' AND ColumnName='North (315 to 45 deg)'")
@@ -212,6 +233,185 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     generators_water = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Generators' AND ColumnName='Water'" )
     total_water = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Total End Uses' AND ColumnName='Water'" )
 
+    demandEndUseComponentsSummaryTable = DemandEndUseComponentsSummaryTable.new
+
+    demandEndUseComponentsSummaryTable.time_peak_electricity =  sql_query_string(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Time of Peak' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.time_peak_natural_gas = sql_query_string(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Time of Peak' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heating_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heating' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heating_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heating' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_cooling_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Cooling' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_cooling_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Cooling' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_interior_lighting_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Interior Lighting' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_interior_lighting_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Interior Lighting' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_exterior_lighting_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Exterior Lighting' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_exterior_lighting_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Exterior Lighting' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_interior_equipment_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Interior Equipment' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_interior_equipment_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Interior Equipment' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_exterior_equipment_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Exterior Equipment' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_exterior_equipment_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Exterior Equipment' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_fans_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Fans' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_fans_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Fans' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_pumps_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Pumps' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_pumps_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Pumps' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heat_rejection_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heat Rejection' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heat_rejection_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heat Rejection' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_humidification_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Humidification' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_humidification_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Humidification' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heat_recovery_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heat Recovery' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_heat_recovery_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Heat Recovery' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_water_systems_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Water Systems' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_water_systems_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Water Systems' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_refrigeration_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Refrigeration' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_refrigeration_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Refrigeration' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_generators_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Generators' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_generators_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Generators' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+    demandEndUseComponentsSummaryTable.end_uses_total_end_uses_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Total End Uses' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
+
+    demandEndUseComponentsSummaryTable.end_uses_total_end_uses_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Total End Uses' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+=begin
+    puts time_peak_electricity,time_peak_natural_gas,end_uses_heating_elect,end_uses_heating_gas,end_uses_cooling_elect,end_uses_cooling_gas,end_uses_interior_lighting_elect,end_uses_interior_lighting_gas,end_uses_exterior_lighting_elect,end_uses_exterior_lighting_gas
+    puts end_uses_interior_equipment_elect,end_uses_interior_equipment_gas,end_uses_exterior_equipment_elect,end_uses_exterior_equipment_gas,end_uses_fans,end_uses_fans,end_uses_pumps,end_uses_pumps,end_uses_heat_rejection,end_uses_heat_rejection,end_uses_humidification,end_uses_humidification
+    puts end_uses_heat_recovery,end_uses_heat_recovery,end_uses_water_systems,end_uses_water_systems,end_uses_refrigeration,end_uses_refrigeration,end_uses_generators,end_uses_generators,end_uses_total_end_uses,end_uses_total_end_uses
+
+=end
+
+    sourceEnergyUseComponentsSummary = SourceEnergyUseComponentsSummary.new
+
+    sourceEnergyUseComponentsSummary.source_end_use_heating_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heating' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_heating_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heating' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_cooling_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Cooling' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_cooling_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Cooling' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_interior_lighting_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Interior Lighting' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_interior_lighting_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Interior Lighting' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_exterior_lighting_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Exterior Lighting' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_exterior_lighting_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Exterior Lighting' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_interior_equipment_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Interior Equipment' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_interior_equipment_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Interior Equipment' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_exterior_equipment_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Exterior Equipment' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_exterior_equipment_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Exterior Equipment' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_fans_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Fans' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_fans_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Fans' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_pumps_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Pumps' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_pumps_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Pumps' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_heat_rejection_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heat Rejection' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_heat_rejection_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heat Rejection' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_humidification_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Humidification' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_humidification_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Humidification' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_heat_recovery_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heat Recovery' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_heat_recovery_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Heat Recovery' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_water_systems_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Water Systems' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_water_systems_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Water Systems' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_refridgeration_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Refrigeration' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_refridgeration_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Refrigeration' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_generators_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Generators' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_generators_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Generators' AND ColumnName = 'Source Natural Gas'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_total_source_energy_end_use_components_elect = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Total Source Energy End Use Components' AND ColumnName = 'Source Electricity'")
+
+    sourceEnergyUseComponentsSummary.source_end_use_total_source_energy_end_use_components_gas = sql_query(runner, sqlFile,'SourceEnergyEndUseComponentsSummary',"TableName = 'Source Energy End Use Components Summary' AND RowName = 'Total Source Energy End Use Components' AND ColumnName = 'Source Natural Gas'")
+
+
+    def BuildingEnergyPerformanceTables(sqlFile)
+
+      months = ["January","February","March","April","May","June","July","August","September","October","November","December","Annual Sum or Average"]
+      reportNames = ['BUILDING ENERGY PERFORMANCE - ELECTRICITY','BUILDING ENERGY PERFORMANCE - NATURAL GAS','BUILDING ENERGY PERFORMANCE - ELECTRICITY PEAK DEMAND','BUILDING ENERGY PERFORMANCE - NATURAL GAS PEAK DEMAND']
+
+      @BuildingEnergyPerformanceTables = {}
+
+      reportNames.each do |report|
+
+        # Categories are Electricity:Facility, InteriorLights:Electricity get them all by only querying for one month
+
+        categories = sqlFile.execute("SELECT ColumnName FROM TabularDataWithStrings WHERE ReportName = '#{report}' AND RowName = 'July'")
+
+        dataByCategory = {}
+        BuildingPerformanceData[report] = dataByCategory
+
+        categories.each do |category|
+          category = category[0]
+          dataByCategory[category] = []
+
+          months.each do |month|
+
+            value = sqlFile.execute("SELECT Value FROM TabularDataWithStrings WHERE RowName = '#{month}' AND ReportName = '#{report}' AND ColumnName = '#{category}'")
+
+            ## Create a key value pair of data and month
+
+            dataByMonth = {}
+            dataByMonth[month] = value
+
+            dataByCategory[category] << dataByMonth
+
+          end
+
+        end
+
+      end
+
+      pp BuildingEnergyPerformanceTables
+    end
+
+    BuildingEnergyPerformanceTables(sqlFile)
+
+
     output = OutputVariables.new
     envelope = EnvelopeDefinition.new
     envelope.wwr_north = window_to_wall_ratio_north
@@ -241,7 +441,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
 
     geoLoc = GeoCoordinates.new
-    geoLoc.lon = longitude 
+    geoLoc.lon = longitude
     geoLoc.lat = latitude
 
     unmet = UnmetHours.new
@@ -310,10 +510,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     output.electricity_end_uses = eeu
     output.natural_gas_end_uses = neu
     output.water_end_uses = weu
-    
+
     inputVars = InputVariables.new
     inputVars.user_data_points = "{}" #TODO: get this from the mongostore on OS-server
 
+    # TODO parse inputs!
+
+=begin
     #improve to use Dir and FileUtils in lieu of chomping the path
     inputsPath = sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)]
     puts "The datapoints path is here: " +inputsPath
@@ -323,14 +526,15 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #replace illegal characters that may be lurking in the keys?
     #http://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
     inputVars.user_data_points = inputsHash
+=end
 
     outObj = Output.new
     outObj.input_variables = inputVars
-    outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments) 
+    outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
     outObj.os_model_id = runner.getStringArgumentValue("job_id", user_arguments)
     outObj.sql_path = sqlFile.path.to_s #todo: this could be parsed to grab the analysis uuid if I wish when using OpenStudio
-    outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments) 
-    outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments) 
+    outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
+    outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
     outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
     outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
     outObj.output_variables = output
@@ -340,8 +544,10 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.EUI_units = "MJ/m2"
     outObj.daylight_autonomy = -1 #how do we calculate daylight autonomy?
     outObj.geo_coords = geoLoc
-    
-    puts outObj.to_hash
+    outObj.demandEndUseComponentsSummaryTable = demandEndUseComponentsSummaryTable
+    outObj.sourceEnergyUseComponentsSummary = sourceEnergyUseComponentsSummary
+
+    pp outObj.to_hash
 
     web_asset_path = OpenStudio.getSharedResourcesPath() / OpenStudio::Path.new("web_assets")
 
@@ -367,7 +573,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       time_step = "Hourly" # "Zone Timestep", "Hourly", "HVAC System Timestep"
       variable_name = "Site Outdoor Air Drybulb Temperature"
       output_timeseries = sqlFile.timeSeries(ann_env_pd, time_step, variable_name, key_value) # key value would go at the end if we used it.
-      
+
       if output_timeseries.empty?
         runner.registerWarning("Timeseries not found.")
       else
@@ -376,21 +582,22 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     else
       runner.registerWarning("No annual environment period found.")
     end
-    
-    if(post)
-      encoded_url = '52.26.47.71:27017'
-      client = Mongo::Client.new([encoded_url], :database => 'pw_test_os_server')
-      collection = client[:sim_results]
-      doc = { simName: SecureRandom.uuid, from: 'Open Studio in the Cloud', timestamp: Time.now.to_i }
-      result = collection.insert_one(outObj.to_hash)
-      puts "Result of #{doc} upload: #{result}"
-    end
+
+
+    # if(post)
+    #   encoded_url = '52.26.47.71:27017'
+    #   client = Mongo::Client.new([encoded_url], :database => 'pw_test_os_server')
+    #   collection = client[:sim_results]
+    #   doc = { simName: SecureRandom.uuid, from: 'Open Studio in the Cloud', timestamp: Time.now.to_i }
+    #   result = collection.insert_one(outObj.to_hash)
+    #   puts "Result of #{doc} upload: #{result}"
+    # end
 
     # close the sql file
     sqlFile.close()
     puts "Sql file closed"
     return true
- 
+
   end
 
 end

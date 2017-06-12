@@ -98,7 +98,7 @@ class PushCustomResultsToMongoDB_Test < MiniTest::Unit::TestCase
     # get arguments and test that they are what we are expecting
     arguments = measure.arguments()
     assert_equal(0, arguments.size)
-  end
+  endsqlFile
 
   def test_good_argument_values
   
