@@ -3,6 +3,7 @@ require 'openstudio/ruleset/ShowRunnerOutput'
 require 'minitest/autorun'
 require_relative '../measure.rb'
 require 'fileutils'
+require_relative '../../IncreaseInsulationRValueForExteriorWalls/measure.rb'
 
 class ReportingMeasure_Test < MiniTest::Unit::TestCase
 
@@ -15,7 +16,12 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     return true
   end
 
+  def model_out_path(test_name)
+    return "#{run_dir(test_name)}/example_model.osm"
+  end
+
   def model_TestOSM_HVAC
+    # Model to use for testing when a model is used
     return "#{File.dirname(__FILE__)}/TestOSM_HVAC.osm"
   end
 
@@ -30,10 +36,6 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
   def run_dir(test_name)
     # always generate test output in specially named 'output' directory so result files are not made part of the measure
     return "#{File.dirname(__FILE__)}/output/#{test_name}"
-  end
-
-  def model_out_path(test_name)
-    return "#{run_dir(test_name)}/example_model.osm"
   end
 
   def sql_path(test_name)
@@ -82,7 +84,7 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     system(cmd)
   end
   # create test files if they do not exist when the test first runs
-  def setup_test(test_name, idf_output_requests, model_in_path = model_TestOSM_HVAC, epw_path = epw_path_default)
+  def setup_test(test_name, idf_output_requests, model_in_path, epw_path = epw_path_default)
 
     if !File.exist?(run_dir(test_name))
       FileUtils.mkdir_p(run_dir(test_name))
@@ -119,6 +121,78 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
     end
   end
 
+  def test_run_model_with_one_measure
+    # Run the model with one measure to test that the entire push to mongo db measure is working
+    test_name = "test_run_model_with_one_measure"
+
+    increase_insulation_rvalue_measure = IncreaseInsulationRValueForExteriorWalls.new
+
+    # create an instance of the measure
+    this_measure = PushCustomResultsToMongoDB.new
+
+    # create an instance of a runner
+    runner = OpenStudio::Ruleset::OSRunner.new
+
+    # get arguments for this measure
+
+    this_measure_arguments = this_measure.arguments()
+    this_measure_argument_map = OpenStudio::Ruleset.convertOSArgumentVectorToMap(this_measure_arguments)
+
+    # argument_map = OpenStudio::Ruleset.convers will be done automatically by OS App and PAT
+    idf_output_requests = this_measure.energyPlusOutputRequests(runner, this_measure_argument_map)
+    assert_equal(1, idf_output_requests.size)
+
+    # mimic the process of running this measure in OS App or PAT. Optionally set custom model_in_path and custom epw_path.
+    epw_path = epw_path_default
+    setup_test(test_name, idf_output_requests,model_TestOSM_HVAC)
+
+    assert(File.exist?(model_out_path(test_name)))
+    assert(File.exist?(sql_path(test_name)))
+    assert(File.exist?(epw_path))
+
+    # set up runner, this will happen automatically when measure is run in PAT or OpenStudio
+    runner.setLastOpenStudioModelPath(OpenStudio::Path.new(model_out_path(test_name)))
+    runner.setLastEpwFilePath(epw_path)
+    runner.setLastEnergyPlusSqlFilePath(OpenStudio::Path.new(sql_path(test_name)))
+
+    # delete the output if it exists
+    if File.exist?(report_path(test_name))
+      FileUtils.rm(report_path(test_name))
+    end
+    assert(!File.exist?(report_path(test_name)))
+
+    # temporarily change directory to the run directory and run the measure
+    start_dir = Dir.pwd
+    begin
+      Dir.chdir(run_dir(test_name))
+
+      # Run IncreaseInsulationRValueForExteriorWalls measure before running the reporting measure
+
+      # Get the arguements for the IncreaseInsulationRValueForExteriorWalls measure
+      arguments_increase_insulation_rvalue_measure = increase_insulation_rvalue_measure.arguments(model_TestOSM_HVAC)
+
+      increase_insulation_rvalue_measure.run(model_TestOSM_HVAC,runner,arguments_increase_insulation_rvalue_measure)
+
+      result = runner.result
+      show_output(result)
+      assert_equal("Success", result.value.valueName)
+      assert(result.warnings.size == 0)
+
+      # Run this measure
+
+      this_measure.run(runner, this_measure_argument_map)
+      result = runner.result
+      show_output(result)
+      assert_equal("Success", result.value.valueName)
+      assert(result.warnings.size == 0)
+    ensure
+      Dir.chdir(start_dir)
+    end
+
+    # make sure the report file exists
+    assert(File.exist?(report_path(test_name)))
+  end
+
   def test_number_of_arguments_and_argument_names
     # create an instance of the measure
     measure = PushCustomResultsToMongoDB.new
@@ -129,9 +203,9 @@ class ReportingMeasure_Test < MiniTest::Unit::TestCase
   end
 
 
-  def test_quick_debugging
+  def quick_debugging
     # This is a reporting measure so no need to run the model again, instead pull the outputs directly to test the measure,
-    # run test_good_argument_values first!
+    # run test_good_argument_values first! This will only work for model outputs not user inputs.
 
     # create an instance of the measure
     measure = PushCustomResultsToMongoDB.new

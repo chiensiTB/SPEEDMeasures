@@ -4,10 +4,9 @@
 require 'pathname'
 require 'erb'
 require 'json'
-require 'securerandom'
+#require 'securerandom'
 #require 'mongo'
 require 'time'
-require 'sqlite3'
 require 'pp'
 require_relative 'resources/Output'
 require "#{File.dirname(__FILE__)}/resources/os_lib_reporting"
@@ -24,12 +23,12 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
   # human readable description
   def description
-    return "Will push a user-customized report to MongoDB"
+    return "A measure that will take Annual Building Utilty Performance tables, Demand End use Components summary table, Source Energy End Use Components Summary and produce an output Json d"
   end
 
   # human readable description of modeling approach
   def modeler_description
-    return "I think that you will like this one."
+    return "A measure that will take Annual Building Utilty Performance tables, Demand End use Components summary table, Source Energy End Use Components Summary and produce an output Json"
   end
 
   # define the arguments that the user will input
@@ -44,7 +43,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     user_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('user_id', true)
     user_id.setDefaultValue("00000000-0000-0000-0000-000000000000")
     job_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('job_id', true)
-    job_id.setDefaultValue(SecureRandom.uuid.to_s)
+    #job_id.setDefaultValue(SecureRandom.uuid.to_s)
     ashrae_climate_zone = OpenStudio::Ruleset::OSArgument::makeStringArgument('ashrae_climate_zone', false)
     ashrae_climate_zone.setDefaultValue("-1")
     building_type = OpenStudio::Ruleset::OSArgument::makeStringArgument('building_type', false)
@@ -408,9 +407,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     siteandsource.site_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName= 'Site and Source Energy' and RowName= 'Total Site Energy' and ColumnName= 'Energy Per Conditioned Building Area'" )
     siteandsource.source_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='Site and Source Energy' AND RowName='Total Source Energy' AND ColumnName='Energy Per Conditioned Building Area'" )
 
-    puts "Site energy per conditioned area"
-    puts sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName= 'Site and Source Energy' and RowName= 'Total Site Energy' and ColumnName= 'Energy Per Conditioned Building Area'" )
-
     unmet = UnmetHours.new
     unmet.units = "Hours"
     unmet.occ_cool = time_setpoint_not_met_during_occupied_cooling
@@ -492,20 +488,45 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
 
     # GET inputs SECTION
-    # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
+    #
 
+    # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
+    # Given time constraint currently we will use Chien Si's code to pull inputs on server
+
+    # 2.x methods (currently setup for measure display name but snake_case arg names)
+=begin
+    runner.workflow.workflowSteps.each do |step|
+
+      if step.to_MeasureStep.is_initialized
+        measure_step = step.to_MeasureStep.get
+
+        measure_name = measure_step.measureDirName
+        if measure_step.name.is_initialized
+          measure_name = measure_step.name.get # this is instance name in PAT
+        end
+        if measure_step.result.is_initialized
+          result = measure_step.result.get
+          result.stepValues.each do |arg|
+            name = arg.name
+            value = arg.valueAsVariant.to_s
+            runner.registerInfo("#{measure_name}: #{name} = #{value}")
+          end
+        else
+          #puts "No result for #{measure_name}"
+        end
+      else
+        #puts "This step is not a measure"
+      end
+    end
+=end
 
     inputVars = InputVariables.new
     inputVars.user_data_points = "{}" #TODO: get this from the mongostore on OS-server
 
-    #
-
     # TODO parse inputs!
-
 
     # END OF GET INPUTS SECTION
 
-=begin
     #improve to use Dir and FileUtils in lieu of chomping the path
     inputsPath = sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)]
     puts "The datapoints path is here: " +inputsPath
@@ -515,7 +536,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #replace illegal characters that may be lurking in the keys?
     #http://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
     inputVars.user_data_points = inputsHash
-=end
+
 
     outObj = Output.new
     outObj.input_variables = inputVars
@@ -719,11 +740,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     else
       runner.registerWarning("No annual environment period found.")
     end
-    # See output
-    #pp outObj.to_hash
 
+=begin
+   # CODE to write out JSON file if need be
     # Write SPEED results JSON
+
     json_out_path = './report_SPEEDOutputs.json'
+
 
     File.open(json_out_path,"w") do |file|
 
@@ -735,6 +758,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
         file.flush
       end
     end
+=end
 
     # if(post)
     #   encoded_url = '52.26.47.71:27017'

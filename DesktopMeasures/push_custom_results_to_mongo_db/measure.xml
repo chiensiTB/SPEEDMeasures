@@ -2,14 +2,63 @@
   <schema_version>3.0</schema_version>
   <name>push_custom_results_to_mongo_db</name>
   <uid>b3553b5c-59f9-4bf5-8a74-1dfb184857a0</uid>
-  <version_id>3074d616-52d9-4294-9036-46888c06dfd5</version_id>
-  <version_modified>20170209T063541Z</version_modified>
+  <version_id>05e36355-af36-4127-9938-a6c377aad038</version_id>
+  <version_modified>20170614T183704Z</version_modified>
   <xml_checksum>345CCCA5</xml_checksum>
   <class_name>PushCustomResultsToMongoDB</class_name>
   <display_name>PushCustomResultsToMongoDB</display_name>
-  <description>Will push a user-customized report to MongoDB</description>
-  <modeler_description>I think that you will like this one.</modeler_description>
-  <arguments/>
+  <description>A measure that will take Annual Building Utilty Performance tables, Demand End use Components summary table, Source Energy End Use Components Summary and produce an output Json d</description>
+  <modeler_description>A measure that will take Annual Building Utilty Performance tables, Demand End use Components summary table, Source Energy End Use Components Summary and produce an output Json</modeler_description>
+  <arguments>
+    <argument>
+      <name>geometry_profile</name>
+      <display_name>geometry_profile</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>{}</default_value>
+    </argument>
+    <argument>
+      <name>os_model</name>
+      <display_name>os_model</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>multi-model mode</default_value>
+    </argument>
+    <argument>
+      <name>user_id</name>
+      <display_name>user_id</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+      <default_value>00000000-0000-0000-0000-000000000000</default_value>
+    </argument>
+    <argument>
+      <name>job_id</name>
+      <display_name>job_id</display_name>
+      <type>String</type>
+      <required>true</required>
+      <model_dependent>false</model_dependent>
+    </argument>
+    <argument>
+      <name>ashrae_climate_zone</name>
+      <display_name>ashrae_climate_zone</display_name>
+      <type>String</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>-1</default_value>
+    </argument>
+    <argument>
+      <name>building_type</name>
+      <display_name>building_type</display_name>
+      <type>String</type>
+      <required>false</required>
+      <model_dependent>false</model_dependent>
+      <default_value>BadDefaultType</default_value>
+    </argument>
+  </arguments>
+  <outputs/>
   <provenances/>
   <tags>
     <tag>Reporting.QAQC</tag>
@@ -43,24 +92,6 @@
   </attributes>
   <files>
     <file>
-      <filename>example_model.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>A0199A45</checksum>
-    </file>
-    <file>
-      <filename>PrimarySchoolCRB1.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>B18870FE</checksum>
-    </file>
-    <file>
-      <filename>test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>639E13A8</checksum>
-    </file>
-    <file>
       <filename>report.html</filename>
       <filetype>html</filetype>
       <usage_type>resource</usage_type>
@@ -76,7 +107,55 @@
       <filename>push_custom_results_to_mongo_db_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>11D6A9FF</checksum>
+      <checksum>D9446107</checksum>
+    </file>
+    <file>
+      <filename>Output.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3DC692F2</checksum>
+    </file>
+    <file>
+      <filename>TestOSM_HVAC.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>150C7B11</checksum>
+    </file>
+    <file>
+      <filename>TestOSM_IdealLoads.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>09D1AD42</checksum>
+    </file>
+    <file>
+      <filename>USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw</filename>
+      <filetype>epw</filetype>
+      <usage_type>test</usage_type>
+      <checksum>C254B53F</checksum>
+    </file>
+    <file>
+      <filename>os_lib_helper_methods.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>A6430141</checksum>
+    </file>
+    <file>
+      <filename>os_lib_reporting.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>818C6AEE</checksum>
+    </file>
+    <file>
+      <filename>os_lib_schedules.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>C4185CAA</checksum>
+    </file>
+    <file>
+      <filename>report.html.erb</filename>
+      <filetype>erb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>463388F8</checksum>
     </file>
     <file>
       <version>
@@ -87,13 +166,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>555D82C6</checksum>
-    </file>
-    <file>
-      <filename>Output.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8FD7643A</checksum>
+      <checksum>EEEFDFB3</checksum>
     </file>
   </files>
 </measure>
