@@ -527,6 +527,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # END OF GET INPUTS SECTION
 
+=begin
     #improve to use Dir and FileUtils in lieu of chomping the path
     inputsPath = sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)]
     puts "The datapoints path is here: " +inputsPath
@@ -536,6 +537,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #replace illegal characters that may be lurking in the keys?
     #http://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
     inputVars.user_data_points = inputsHash
+=end
 
 
     outObj = Output.new
@@ -741,7 +743,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerWarning("No annual environment period found.")
     end
 
-=begin
    # CODE to write out JSON file if need be
     # Write SPEED results JSON
 
@@ -758,7 +759,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
         file.flush
       end
     end
-=end
 
     # if(post)
     #   encoded_url = '52.26.47.71:27017'
