@@ -494,7 +494,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # Given time constraint currently we will use Chien Si's code to pull inputs on server
 
     # 2.x methods (currently setup for measure display name but snake_case arg names)
-=begin
+
     runner.workflow.workflowSteps.each do |step|
 
       if step.to_MeasureStep.is_initialized
@@ -518,7 +518,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
         #puts "This step is not a measure"
       end
     end
-=end
 
     inputVars = InputVariables.new
     inputVars.user_data_points = "{}" #TODO: get this from the mongostore on OS-server
@@ -526,6 +525,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # TODO parse inputs!
 
     # END OF GET INPUTS SECTION
+
+
 
 =begin
     #improve to use Dir and FileUtils in lieu of chomping the path
