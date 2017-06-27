@@ -4,8 +4,12 @@
 require 'pathname'
 require 'erb'
 require 'json'
-#require 'securerandom'
-#require 'mongo'
+require 'net/http'
+require 'uri'
+require 'json'
+require 'securerandom'
+require 'time'
+require 'pathname'
 require 'time'
 require 'pp'
 require_relative 'resources/Output'
@@ -94,8 +98,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     val
   end
 
-  # sql_query method when string expected
+  
   def sql_query_string(runner, sql, report_name, query)
+	# sql_query method when a string is expected
     val = nil
     result = sql.execAndReturnFirstString("SELECT Value FROM TabularDataWithStrings WHERE ReportName='#{report_name}' AND #{query}")
     if result.empty?
@@ -117,10 +122,14 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   # define what happens when the measure is run
   def run(runner, user_arguments)
     post = false
+	osServerRun = false
+	
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(), user_arguments)
+	      runner.registerError("Something went wrong when validating user arguments.")
+      p "Error validating user arguments"
       return false
     end
 
@@ -130,10 +139,18 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerError("Cannot find last model.")
       return false
     end
+	
     #get the large pieces
     model = model.get
     building = model.getBuilding
     site = model.getSite
+	
+	workspace = runner.lastEnergyPlusWorkspace
+    if workspace.empty?
+      runner.registerError("Cannot find last workspace.")
+      return false
+    end
+    workspace = workspace.get
 
     sqlFile = runner.lastEnergyPlusSqlFile
     if sqlFile.empty?
@@ -168,6 +185,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     state = epwFile.stateProvinceRegion
 
     buildingType = building.suggestedStandardsBuildingTypes
+	
+	runner.registerInfo("Done grabbing building and site data from model")
 
     # SQL calls
     # put data into the local variable 'output', all local variables are available for erb to use when configuring the input html file
@@ -484,78 +503,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     annualBuildingUtiltyPerformanceSummary.WaterEndUses = weu
 
     annualBuildingUtiltyPerformanceSummary.UnmetHours = unmet
-
-    ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
-
-    # GET inputs SECTION
-    #
-
-    # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
-    # Given time constraint currently we will use Chien Si's code to pull inputs on server
-
-    # 2.x methods (currently setup for measure display name but snake_case arg names)
-
-    runner.workflow.workflowSteps.each do |step|
-
-      if step.to_MeasureStep.is_initialized
-        measure_step = step.to_MeasureStep.get
-
-        measure_name = measure_step.measureDirName
-        if measure_step.name.is_initialized
-          measure_name = measure_step.name.get # this is instance name in PAT
-        end
-        if measure_step.result.is_initialized
-          result = measure_step.result.get
-          result.stepValues.each do |arg|
-            name = arg.name
-            value = arg.valueAsVariant.to_s
-            runner.registerInfo("#{measure_name}: #{name} = #{value}")
-          end
-        else
-          #puts "No result for #{measure_name}"
-        end
-      else
-        #puts "This step is not a measure"
-      end
-    end
-
-    inputVars = InputVariables.new
-    inputVars.user_data_points = "{}" #TODO: get this from the mongostore on OS-server
-
-    # TODO parse inputs!
-
-    # END OF GET INPUTS SECTION
-
-
-
-=begin
-    #improve to use Dir and FileUtils in lieu of chomping the path
-    inputsPath = sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)]
-    puts "The datapoints path is here: " +inputsPath
-    jsonfile = File.read(inputsPath+"data_point.json")
-    inputsHash = JSON.parse(jsonfile)
-    inputsHash = inputsHash["data_point"]["set_variable_values_display_names"]
-    #replace illegal characters that may be lurking in the keys?
-    #http://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
-    inputVars.user_data_points = inputsHash
-=end
-
-
-    outObj = Output.new
-    outObj.input_variables = inputVars
-    outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
-    outObj.os_model_id = runner.getStringArgumentValue("job_id", user_arguments)
-    outObj.sql_path = sqlFile.path.to_s #todo: this could be parsed to grab the analysis uuid if I wish when using OpenStudio
-    outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
-    outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
-    outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
-    outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
-    outObj.output_variables = output
-
-    outObj.daylight_autonomy = -1 #how do we calculate daylight autonomy?
-    outObj.geo_coords = geoLoc
-
-    # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
+	
+	    # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
 
     output.annual_building_utilty_performance_summary = annualBuildingUtiltyPerformanceSummary
     output.demandEndUseComponentsSummaryTable = demandEndUseComponentsSummaryTable
@@ -711,7 +660,82 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # END OF SECTION BUILDING ENERGY PERFORMANCE ELECTRICITY, NATURAL GAS, USE AND DEMAND SECTION
 
-    web_asset_path = OpenStudio.getSharedResourcesPath() / OpenStudio::Path.new("web_assets")
+	runner.registerInfo("Done grabbing sql data")
+
+    ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
+
+    # GET inputs SECTION - TODO parse inputs using the code below
+	
+	# For now will use Chien Si's hacky code seen on lines 711-720 :until code on line 552-548 can be worked out
+
+    # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
+    # Given time constraint currently we will use Chien Si's code to pull inputs on server
+
+    #2.x methods (currently setup for measure display name but snake_case arg names)
+
+    inputVars = InputVariables.new
+    inputVars.user_data_points = "{}" #TODO: get this from the mongostore on OS-server
+
+    # runner.workflow.workflowSteps.each do |step|
+    #
+    #   if step.to_MeasureStep.is_initialized
+    #     measure_step = step.to_MeasureStep.get
+    #
+    #     measure_name = measure_step.measureDirName
+    #     if measure_step.name.is_initialized
+    #       measure_name = measure_step.name.get # this is instance name in PAT
+    #     end
+    #     if measure_step.result.is_initialized
+    #       result = measure_step.result.get
+    #       result.stepValues.each do |arg|
+    #         name = arg.name
+    #         value = arg.valueAsVariant.to_s
+    #
+    #         runner.registerInfo("This is runner.workflow.workflowsteps")
+    #         runner.registerInfo("#{measure_name}:= #{value}")
+    #         runner.getStringArgumentValue("#{measure_name}:speedOutput",stringArguement)
+    #         runner.registerInfo(stringArguement)
+    #       end
+    #     else
+    #       #puts "No result for #{measure_name}"
+    #     end
+    #   else
+    #     #puts "This step is not a measure"
+    #   end
+    # end
+	
+	runner.registerInfo("Grabbing user inputs")
+	
+    #TODO: improve to use Dir and FileUtils in lieu of chomping the path
+    #TODO: allow user to set path for different environments.
+    runner.registerInfo("Current working directory:"+Dir.pwd.to_s)
+    if (osServerRun)
+      inputsPath = sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)]
+      jsonfile = File.read(inputsPath+"data_point.json")
+      inputsHash = JSON.parse(jsonfile)
+      inputsHash = inputsHash["data_point"]["set_variable_values_display_names"]
+      #replace illegal characters that may be lurking in the keys?
+      #http://stackoverflow.com/questions/9759972/what-characters-are-not-allowed-in-mongodb-field-names
+      inputVars.user_data_points = inputsHash
+    end
+
+    # END OF GET INPUTS SECTION
+	
+	# Build outObj the object to make the final json
+	
+    outObj = Output.new
+    outObj.input_variables = inputVars
+    outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
+    outObj.os_model_id = runner.getStringArgumentValue("job_id", user_arguments)
+    outObj.sql_path = sqlFile.path.to_s #todo: this could be parsed to grab the analysis uuid if I wish when using OpenStudio
+    outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
+    outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
+    outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
+    outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
+    outObj.output_variables = output
+
+    outObj.daylight_autonomy = -1 #how do we calculate daylight autonomy?
+    outObj.geo_coords = geoLoc
 
     # get the weather file run period (as opposed to design day run period)
     ann_env_pd = nil
@@ -744,11 +768,16 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerWarning("No annual environment period found.")
     end
 
-   # CODE to write out JSON file if need be
-    # Write SPEED results JSON
-
-    json_out_path = './report_SPEEDOutputs.json'
-
+    # CODE to write out JSON file if need be
+    # Write SPEED results JSON - should write in analysis folder.
+	
+	if (osServerRun)
+		# Output a Json on the server until the json can be pushed to mongo db
+		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
+		
+    else
+		json_out_path = './report_SPEEDOutputs.json'
+	end
 
     File.open(json_out_path,"w") do |file|
 
