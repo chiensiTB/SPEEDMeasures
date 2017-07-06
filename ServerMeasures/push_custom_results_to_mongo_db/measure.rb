@@ -13,9 +13,6 @@ require 'pathname'
 require 'time'
 require 'pp'
 require_relative 'resources/Output'
-require "#{File.dirname(__FILE__)}/resources/os_lib_reporting"
-require "#{File.dirname(__FILE__)}/resources/os_lib_schedules"
-require "#{File.dirname(__FILE__)}/resources/os_lib_helper_methods"
 
 #start the measure
 class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
@@ -98,7 +95,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     val
   end
 
-  
+
   def sql_query_string(runner, sql, report_name, query)
 	# sql_query method when a string is expected
     val = nil
@@ -123,7 +120,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   def run(runner, user_arguments)
     post = false
 	osServerRun = false
-	
+
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
     # use the built-in error checking
@@ -139,12 +136,12 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerError("Cannot find last model.")
       return false
     end
-	
+
     #get the large pieces
     model = model.get
     building = model.getBuilding
     site = model.getSite
-	
+
 	workspace = runner.lastEnergyPlusWorkspace
     if workspace.empty?
       runner.registerError("Cannot find last workspace.")
@@ -185,7 +182,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     state = epwFile.stateProvinceRegion
 
     buildingType = building.suggestedStandardsBuildingTypes
-	
+
 	runner.registerInfo("Done grabbing building and site data from model")
 
     # SQL calls
@@ -503,7 +500,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     annualBuildingUtiltyPerformanceSummary.WaterEndUses = weu
 
     annualBuildingUtiltyPerformanceSummary.UnmetHours = unmet
-	
+
 	    # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
 
     output.annual_building_utilty_performance_summary = annualBuildingUtiltyPerformanceSummary
@@ -665,7 +662,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
 
     # GET inputs SECTION - TODO parse inputs using the code below
-	
+
 	# For now will use Chien Si's hacky code seen on lines 711-720 :until code on line 552-548 can be worked out
 
     # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
@@ -703,9 +700,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #     #puts "This step is not a measure"
     #   end
     # end
-	
+
 	runner.registerInfo("Grabbing user inputs")
-	
+
     #TODO: improve to use Dir and FileUtils in lieu of chomping the path
     #TODO: allow user to set path for different environments.
     runner.registerInfo("Current working directory:"+Dir.pwd.to_s)
@@ -720,9 +717,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     end
 
     # END OF GET INPUTS SECTION
-	
+
 	# Build outObj the object to make the final json
-	
+
     outObj = Output.new
     outObj.input_variables = inputVars
     outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
@@ -770,11 +767,11 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
-	
+
 	if (osServerRun)
 		# Output a Json on the server until the json can be pushed to mongo db
 		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
-		
+
     else
 		json_out_path = './report_SPEEDOutputs.json'
 	end
