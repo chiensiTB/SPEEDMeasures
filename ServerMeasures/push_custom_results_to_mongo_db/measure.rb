@@ -118,8 +118,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    post = false
-	osServerRun = false
+    post = true
+	osServerRun = true
 
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
@@ -768,13 +768,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
 
-	if (osServerRun)
-		# Output a Json on the server until the json can be pushed to mongo db
-		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
-
-    else
-		json_out_path = './report_SPEEDOutputs.json'
-	end
+	# if (osServerRun)
+	# 	# Output a Json on the server until the json can be pushed to mongo db
+	# 	json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
+    #
+    # else
+	# 	json_out_path = './report_SPEEDOutputs.json'
+	# end
 
     File.open(json_out_path,"w") do |file|
 
@@ -787,14 +787,18 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       end
     end
 
-    # if(post)
-    #   encoded_url = '52.26.47.71:27017'
-    #   client = Mongo::Client.new([encoded_url], :database => 'pw_test_os_server')
-    #   collection = client[:sim_results]
-    #   doc = { simName: SecureRandom.uuid, from: 'Open Studio in the Cloud', timestamp: Time.now.to_i }
-    #   result = collection.insert_one(outObj.to_hash)
-    #   puts "Result of #{doc} upload: #{result}"
-    # end
+    runner.registerInfo("Attempting to push to mongo...")
+    if(post)
+      #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
+      encoded_url = "http://35.160.2.217:3000/simulation"
+      uri = URI.parse(encoded_url)
+      http = Net::HTTP.new(uri.host,uri.port)
+      request = Net::HTTP::Post.new(uri.request_uri,'Content-Type' => 'application/json')
+      request.body = outObj.to_hash
+      resp = http.request(request)
+
+      runner.registerInfo("Response from post: #{resp}")
+    end
 
     # close the sql file
     sqlFile.close()
