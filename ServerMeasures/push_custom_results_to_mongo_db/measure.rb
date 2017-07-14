@@ -725,14 +725,16 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
     outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
     # Ensure that the geometry profile is only for this particular osm model!
-    entireGeometryProfileString = runner.getStringArgumentValue("entire_geometry_profile", user_arguments)
+    entireGeometryProfileString = runner.getStringArgumentValue("geometry_profile", user_arguments)
     # Query the entire geometry profile to get the geometry profile for just the model being run NOW
     entireGeometryProfileJSON = JSON.parse(entireGeometryProfileString)
 
     # The name of the current model that is being run now - filter out the first 3 characters of this string as this is ../
-    currentModelName = runner.registerInfo(runner.workflow.seedFile.get.to_s[3..-1])
+    currentModelName = runner.workflow.seedFile.get.to_s[3..-1]
+
     # Query the entire Geometry Profile to get the Geometry profile of just the model being run now
-    outObj.geometry_profile = entireGeometryProfile["geometryProfile"][currentModelName]
+
+    outObj.geometry_profile = entireGeometryProfileJSON["geometryProfile"][currentModelName]
 
     ## Since we are using the replace OpenStudio model measure this, this value is: multi-model-run not any particular OSM name
     outObj.output_variables = output
@@ -774,27 +776,24 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
 
-	# if (osServerRun)
-	# 	# Output a Json on the server until the json can be pushed to mongo db
-	# 	json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
-    #
-    # else
-	# 	json_out_path = './report_SPEEDOutputs.json'
-	# end
+	if (!osServerRun)
+		# Output a Json on the server until the json can be pushed to mongo db
+		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
 
-    # File.open(json_out_path,"w") do |file|
-    #
-    #   file.write(JSON.pretty_generate(outObj.to_hash))
-    #
-    #   begin
-    #     file.fsync
-    #   rescue
-    #     file.flush
-    #   end
-    # end
+        File.open(json_out_path,"w") do |file|
 
-    runner.registerInfo("Attempting to push to mongo...")
+          file.write(JSON.pretty_generate(outObj.to_hash))
+
+          begin
+            file.fsync
+          rescue
+            file.flush
+          end
+        end
+    end
+
     if(post)
+        runner.registerInfo("Attempting to push to mongo...")
       #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
       encoded_url = "http://35.160.2.217:3000/simulation"
       uri = URI.parse(encoded_url)
