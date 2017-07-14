@@ -13,9 +13,6 @@ require 'pathname'
 require 'time'
 require 'pp'
 require_relative 'resources/Output'
-require "#{File.dirname(__FILE__)}/resources/os_lib_reporting"
-require "#{File.dirname(__FILE__)}/resources/os_lib_schedules"
-require "#{File.dirname(__FILE__)}/resources/os_lib_helper_methods"
 
 #start the measure
 class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
@@ -42,19 +39,15 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # this measure will require arguments, but at this time, they are not known
     geometry_profile = OpenStudio::Ruleset::OSArgument::makeStringArgument('geometry_profile', true)
     geometry_profile.setDefaultValue("{}")
-    os_model = OpenStudio::Ruleset::OSArgument::makeStringArgument('os_model', true)
-    os_model.setDefaultValue('multi-model mode')
     user_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('user_id', true)
     user_id.setDefaultValue("00000000-0000-0000-0000-000000000000")
     job_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('job_id', true)
-    #job_id.setDefaultValue(SecureRandom.uuid.to_s)
     ashrae_climate_zone = OpenStudio::Ruleset::OSArgument::makeStringArgument('ashrae_climate_zone', false)
     ashrae_climate_zone.setDefaultValue("-1")
     building_type = OpenStudio::Ruleset::OSArgument::makeStringArgument('building_type', false)
     building_type.setDefaultValue("BadDefaultType")
 
     args << geometry_profile
-    args << os_model
     args << user_id
     args << job_id
     args << ashrae_climate_zone
@@ -98,7 +91,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     val
   end
 
-  
+
   def sql_query_string(runner, sql, report_name, query)
 	# sql_query method when a string is expected
     val = nil
@@ -122,8 +115,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   # define what happens when the measure is run
   def run(runner, user_arguments)
     post = true
+<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
 	  osServerRun = false
 	
+=======
+	osServerRun = true
+
+>>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
     # use the built-in error checking
@@ -139,12 +137,12 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerError("Cannot find last model.")
       return false
     end
-	
+
     #get the large pieces
     model = model.get
     building = model.getBuilding
     site = model.getSite
-	
+
 	workspace = runner.lastEnergyPlusWorkspace
     if workspace.empty?
       runner.registerError("Cannot find last workspace.")
@@ -185,8 +183,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     state = epwFile.stateProvinceRegion
 
     buildingType = building.suggestedStandardsBuildingTypes
+<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
 	
 	  runner.registerInfo("Done grabbing building and site data from model")
+=======
+
+	runner.registerInfo("Done grabbing building and site data from model")
+>>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
 
     # SQL calls
     # put data into the local variable 'output', all local variables are available for erb to use when configuring the input html file
@@ -503,7 +506,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     annualBuildingUtiltyPerformanceSummary.WaterEndUses = weu
 
     annualBuildingUtiltyPerformanceSummary.UnmetHours = unmet
-	
+
 	    # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
 
     output.annual_building_utilty_performance_summary = annualBuildingUtiltyPerformanceSummary
@@ -665,7 +668,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
 
     # GET inputs SECTION - TODO parse inputs using the code below
-	
+
 	# For now will use Chien Si's hacky code seen on lines 711-720 :until code on line 552-548 can be worked out
 
     # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
@@ -703,9 +706,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #     #puts "This step is not a measure"
     #   end
     # end
-	
+
 	runner.registerInfo("Grabbing user inputs")
-	
+
     #TODO: improve to use Dir and FileUtils in lieu of chomping the path
     #TODO: allow user to set path for different environments.
     runner.registerInfo("Current working directory:"+Dir.pwd.to_s)
@@ -720,18 +723,28 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     end
 
     # END OF GET INPUTS SECTION
-	
+
 	# Build outObj the object to make the final json
-	
+
     outObj = Output.new
     outObj.input_variables = inputVars
+    # Mongo DB will be queried using the user_id and job_ib (which is equalivalent to the project_id)
+
     outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
-    outObj.os_model_id = runner.getStringArgumentValue("job_id", user_arguments)
-    outObj.sql_path = sqlFile.path.to_s #todo: this could be parsed to grab the analysis uuid if I wish when using OpenStudio
+    outObj.job_id = runner.getStringArgumentValue("job_id", user_arguments)
     outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
     outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
-    outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
-    outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
+    # Ensure that the geometry profile is only for this particular osm model!
+    entireGeometryProfileString = runner.getStringArgumentValue("entire_geometry_profile", user_arguments)
+    # Query the entire geometry profile to get the geometry profile for just the model being run NOW
+    entireGeometryProfileJSON = JSON.parse(entireGeometryProfileString)
+
+    # The name of the current model that is being run now - filter out the first 3 characters of this string as this is ../
+    currentModelName = runner.registerInfo(runner.workflow.seedFile.get.to_s[3..-1])
+    # Query the entire Geometry Profile to get the Geometry profile of just the model being run now
+    outObj.geometry_profile = entireGeometryProfile["geometryProfile"][currentModelName]
+
+    ## Since we are using the replace OpenStudio model measure this, this value is: multi-model-run not any particular OSM name
     outObj.output_variables = output
 
     outObj.daylight_autonomy = -1 #how do we calculate daylight autonomy?
@@ -770,25 +783,25 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
-	
-	if (osServerRun)
-		# Output a Json on the server until the json can be pushed to mongo db
-		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
-		
-    else
-		json_out_path = './report_SPEEDOutputs.json'
-	end
 
-    File.open(json_out_path,"w") do |file|
+	# if (osServerRun)
+	# 	# Output a Json on the server until the json can be pushed to mongo db
+	# 	json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
+    #
+    # else
+	# 	json_out_path = './report_SPEEDOutputs.json'
+	# end
 
-      file.write(JSON.pretty_generate(outObj.to_hash))
-
-      begin
-        file.fsync
-      rescue
-        file.flush
-      end
-    end
+    # File.open(json_out_path,"w") do |file|
+    #
+    #   file.write(JSON.pretty_generate(outObj.to_hash))
+    #
+    #   begin
+    #     file.fsync
+    #   rescue
+    #     file.flush
+    #   end
+    # end
 
     runner.registerInfo("Attempting to push to mongo...")
     if(post)
@@ -803,6 +816,22 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerInfo("Response from post: #{resp}")
     end
 
+<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
+    runner.registerInfo("Attempting to push to mongo...")
+    if(post)
+      #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
+      encoded_url = "http://35.160.2.217:3000/simulation"
+      uri = URI.parse(encoded_url)
+      http = Net::HTTP.new(uri.host,uri.port)
+      request = Net::HTTP::Post.new(uri.request_uri,'Content-Type' => 'application/json')
+      request.body = outObj.to_hash
+      resp = http.request(request)
+
+      runner.registerInfo("Response from post: #{resp}")
+    end
+
+=======
+>>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
     # close the sql file
     sqlFile.close()
     puts "Sql file closed"

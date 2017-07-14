@@ -12,7 +12,7 @@ class InputVariables
   attr_accessor :user_data_points
 
   def initialize
-    
+
   end
 
   def to_hash
@@ -24,12 +24,12 @@ class OutputVariables
   attr_accessor :building_envelope, :site, :building, :unmet_hours, :electricity_end_uses, :natural_gas_end_uses, :water_end_uses,:demandEndUseComponentsSummaryTable,:sourceEnergyUseComponentsSummary,:annual_building_utilty_performance_summary,:building_energy_performance_electricity_and_natural_gas,:building_energy_performance_electricity_and_natural_gas_peak_demand
 
   def initialize
-    
+
   end
 
   def to_hash
     { building_envelope: @building_envelope.to_hash, site: @site.to_hash, building: @building.to_hash,
-      unmet_hours: @unmet_hours.to_hash, electricity_end_uses: @electricity_end_uses.to_hash, 
+      unmet_hours: @unmet_hours.to_hash, electricity_end_uses: @electricity_end_uses.to_hash,
       natural_gas_end_uses:@natural_gas_end_uses.to_hash, water_end_uses:@water_end_uses.to_hash,'demandEndUseComponentsSummaryTable'=>@demandEndUseComponentsSummaryTable.to_hash,'sourceEnergyUseComponentsSummary'=>@sourceEnergyUseComponentsSummary.to_hash,'annual_building_utilty_performance_summary'=>@annual_building_utilty_performance_summary.to_hash,
       'building_energy_performance_tables'=>@building_energy_performance_electricity_and_natural_gas,'building_energy_performance_peak_tables'=>@building_energy_performance_electricity_and_natural_gas_peak_demand
     }
@@ -37,8 +37,8 @@ class OutputVariables
 end
 
 class Output
-  attr_accessor :user_id, :os_model_id, :sql_path, :created_timestamp, :building_type, 
-  :climate_zone, :geometry_profile, :openStudio_model_name, :input_variables, :output_variables, :daylight_autonomy,
+  attr_accessor :user_id, :job_id, :sql_path, :created_timestamp, :building_type,
+  :climate_zone, :geometry_profile, :input_variables, :output_variables, :daylight_autonomy,
   :geo_coords
 
   def initialize
@@ -46,9 +46,9 @@ class Output
     @created_timestamp = Time.now.to_i #always want a unix timestamp here
   end
 
-  # the best answer http://stackoverflow.com/questions/4464050/ruby-objects-and-json-serialization-without-rails 
+  # the best answer http://stackoverflow.com/questions/4464050/ruby-objects-and-json-serialization-without-rails
   def to_hash
-    { 'user_id' => @user_id, 'os_model_id' => @os_model_id, 'sql_path'=>@sql_path, 'created_timestamp'=>@created_timestamp,'building_type'=>@building_type,'climate_zone'=>@climate_zone, 'geometry_profile'=>@geometry_profile, 'openStudio_model_name'=>@openStudio_model_name, 'input_variables'=>@input_variables.to_hash,'output_variables'=>@output_variables.to_hash,
+    { 'user_id' => @user_id, 'job_id' => @job_id, 'sql_path'=>@sql_path, 'created_timestamp'=>@created_timestamp,'building_type'=>@building_type,'climate_zone'=>@climate_zone, 'geometry_profile'=>@geometry_profile, 'input_variables'=>@input_variables.to_hash,'output_variables'=>@output_variables.to_hash,
       'daylight_autonomy'=>@daylight_autonomy, 'geo_coords'=>@geo_coords.to_hash
     }
   end
@@ -136,9 +136,9 @@ class ElectricityEndUses
   :fans, :pumps, :heat_rejection, :humidification, :heat_recovery, :water_systems, :refrigeration, :generators, :total
 
   def to_hash
-    { energy_units:@energy_units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment, 
+    { energy_units:@energy_units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment,
       exterior_equipment:@exterior_equipment, fans:@fans, pumps:@pumps, heat_rejection:@heat_rejection,
-      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration, 
+      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration,
       generators:@generators, total:@total }
   end
 end
@@ -149,9 +149,9 @@ class NaturalGasEndUses
   :fans, :pumps, :heat_rejection, :humidification, :heat_recovery, :water_systems, :refrigeration, :generators, :total
 
   def to_hash
-    { energy_units:@energy_units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment, 
+    { energy_units:@energy_units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment,
       exterior_equipment:@exterior_equipment, fans:@fans, pumps:@pumps, heat_rejection:@heat_rejection,
-      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration, 
+      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration,
       generators:@generators, total:@total }
   end
 end
@@ -161,9 +161,9 @@ class WaterEndUses
   :fans, :pumps, :heat_rejection, :humidification, :heat_recovery, :water_systems, :refrigeration, :generators, :total
 
   def to_hash
-    { units:@units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment, 
+    { units:@units, heating:@heating,cooling:@cooling,interior_lighting:@interior_lighting, exterior_lighting:@exterior_lighting, interior_equipment:@interior_equipment,
       exterior_equipment:@exterior_equipment, fans:@fans, pumps:@pumps, heat_rejection:@heat_rejection,
-      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration, 
+      humidification:@humidification, heat_recovery:@heat_recovery, water_systems:@water_systems, refrigeration:@refrigeration,
       generators:@generators, total:@total }
   end
 end
