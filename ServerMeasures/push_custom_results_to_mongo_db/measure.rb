@@ -115,13 +115,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   # define what happens when the measure is run
   def run(runner, user_arguments)
     post = true
-<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
-	  osServerRun = false
-	
-=======
-	osServerRun = true
+	  osServerRun = true
 
->>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
     # use the built-in error checking
@@ -183,13 +178,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     state = epwFile.stateProvinceRegion
 
     buildingType = building.suggestedStandardsBuildingTypes
-<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
-	
-	  runner.registerInfo("Done grabbing building and site data from model")
-=======
 
-	runner.registerInfo("Done grabbing building and site data from model")
->>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
+
+	  runner.registerInfo("Done grabbing building and site data from model")
 
     # SQL calls
     # put data into the local variable 'output', all local variables are available for erb to use when configuring the input html file
@@ -816,7 +807,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerInfo("Response from post: #{resp}")
     end
 
-<<<<<<< HEAD:DesktopMeasures/push_custom_results_to_mongo_db/measure.rb
+
     runner.registerInfo("Attempting to push to mongo...")
     if(post)
       #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
@@ -830,8 +821,6 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
       runner.registerInfo("Response from post: #{resp}")
     end
 
-=======
->>>>>>> e0532f3fdad83366aa61cd8b282ba8e7d65302ea:ServerMeasures/push_custom_results_to_mongo_db/measure.rb
     # close the sql file
     sqlFile.close()
     puts "Sql file closed"
