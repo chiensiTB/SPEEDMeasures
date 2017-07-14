@@ -39,19 +39,15 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # this measure will require arguments, but at this time, they are not known
     geometry_profile = OpenStudio::Ruleset::OSArgument::makeStringArgument('geometry_profile', true)
     geometry_profile.setDefaultValue("{}")
-    os_model = OpenStudio::Ruleset::OSArgument::makeStringArgument('os_model', true)
-    os_model.setDefaultValue('multi-model mode')
     user_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('user_id', true)
     user_id.setDefaultValue("00000000-0000-0000-0000-000000000000")
     job_id = OpenStudio::Ruleset::OSArgument::makeStringArgument('job_id', true)
-    #job_id.setDefaultValue(SecureRandom.uuid.to_s)
     ashrae_climate_zone = OpenStudio::Ruleset::OSArgument::makeStringArgument('ashrae_climate_zone', false)
     ashrae_climate_zone.setDefaultValue("-1")
     building_type = OpenStudio::Ruleset::OSArgument::makeStringArgument('building_type', false)
     building_type.setDefaultValue("BadDefaultType")
 
     args << geometry_profile
-    args << os_model
     args << user_id
     args << job_id
     args << ashrae_climate_zone
@@ -722,13 +718,23 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     outObj = Output.new
     outObj.input_variables = inputVars
+    # Mongo DB will be queried using the user_id and job_ib (which is equalivalent to the project_id)
+
     outObj.user_id = runner.getStringArgumentValue("user_id", user_arguments)
-    outObj.os_model_id = runner.getStringArgumentValue("job_id", user_arguments)
-    outObj.sql_path = sqlFile.path.to_s #todo: this could be parsed to grab the analysis uuid if I wish when using OpenStudio
+    outObj.job_id = runner.getStringArgumentValue("job_id", user_arguments)
     outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
     outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
-    outObj.geometry_profile = runner.getStringArgumentValue("geometry_profile", user_arguments)
-    outObj.openStudio_model_name = runner.getStringArgumentValue("os_model", user_arguments)
+    # Ensure that the geometry profile is only for this particular osm model!
+    entireGeometryProfileString = runner.getStringArgumentValue("entire_geometry_profile", user_arguments)
+    # Query the entire geometry profile to get the geometry profile for just the model being run NOW
+    entireGeometryProfileJSON = JSON.parse(entireGeometryProfileString)
+
+    # The name of the current model that is being run now - filter out the first 3 characters of this string as this is ../
+    currentModelName = runner.registerInfo(runner.workflow.seedFile.get.to_s[3..-1])
+    # Query the entire Geometry Profile to get the Geometry profile of just the model being run now
+    outObj.geometry_profile = entireGeometryProfile["geometryProfile"][currentModelName]
+
+    ## Since we are using the replace OpenStudio model measure this, this value is: multi-model-run not any particular OSM name
     outObj.output_variables = output
 
     outObj.daylight_autonomy = -1 #how do we calculate daylight autonomy?
@@ -776,16 +782,16 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 	# 	json_out_path = './report_SPEEDOutputs.json'
 	# end
 
-    File.open(json_out_path,"w") do |file|
-
-      file.write(JSON.pretty_generate(outObj.to_hash))
-
-      begin
-        file.fsync
-      rescue
-        file.flush
-      end
-    end
+    # File.open(json_out_path,"w") do |file|
+    #
+    #   file.write(JSON.pretty_generate(outObj.to_hash))
+    #
+    #   begin
+    #     file.fsync
+    #   rescue
+    #     file.flush
+    #   end
+    # end
 
     runner.registerInfo("Attempting to push to mongo...")
     if(post)
