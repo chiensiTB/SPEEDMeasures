@@ -21,7 +21,7 @@ class InputVariables
 end
 
 class OutputVariables
-  attr_accessor :building_envelope, :site, :building, :unmet_hours, :electricity_end_uses, :natural_gas_end_uses, :water_end_uses,:demandEndUseComponentsSummaryTable,:sourceEnergyUseComponentsSummary,:annual_building_utilty_performance_summary,:building_energy_performance_electricity_and_natural_gas,:building_energy_performance_electricity_and_natural_gas_peak_demand
+  attr_accessor :building_envelope, :site, :building, :unmet_hours, :electricity_end_uses, :natural_gas_end_uses, :water_end_uses,:demandEndUseComponentsSummaryTable,:sourceEnergyUseComponentsSummary,:annual_building_utilty_performance_summary,:building_energy_performance_electricity_and_natural_gas,:building_energy_performance_electricity_and_natural_gas_peak_demand,:leed_summary
 
   def initialize
 
@@ -31,15 +31,14 @@ class OutputVariables
     { building_envelope: @building_envelope.to_hash, site: @site.to_hash, building: @building.to_hash,
       unmet_hours: @unmet_hours.to_hash, electricity_end_uses: @electricity_end_uses.to_hash,
       natural_gas_end_uses:@natural_gas_end_uses.to_hash, water_end_uses:@water_end_uses.to_hash,'demandEndUseComponentsSummaryTable'=>@demandEndUseComponentsSummaryTable.to_hash,'sourceEnergyUseComponentsSummary'=>@sourceEnergyUseComponentsSummary.to_hash,'annual_building_utilty_performance_summary'=>@annual_building_utilty_performance_summary.to_hash,
-      'building_energy_performance_tables'=>@building_energy_performance_electricity_and_natural_gas,'building_energy_performance_peak_tables'=>@building_energy_performance_electricity_and_natural_gas_peak_demand
+      'building_energy_performance_tables'=>@building_energy_performance_electricity_and_natural_gas,'building_energy_performance_peak_tables'=>@building_energy_performance_electricity_and_natural_gas_peak_demand,"leed_Report_Summary"=>@leed_summary.to_hash
     }
   end
 end
 
 class Output
   attr_accessor :user_id, :job_id, :sql_path, :created_timestamp, :building_type,
-  :climate_zone, :geometry_profile, :input_variables, :output_variables, :daylight_autonomy,
-  :geo_coords
+  :climate_zone, :geometry_profile, :input_variables, :output_variables, :daylight_autonomy,:leed_summary,:geo_coords
 
   def initialize
     @user_id = -1 #neg 1 means no user id was ever provided
@@ -49,7 +48,7 @@ class Output
   # the best answer http://stackoverflow.com/questions/4464050/ruby-objects-and-json-serialization-without-rails
   def to_hash
     { 'user_id' => @user_id, 'job_id' => @job_id, 'sql_path'=>@sql_path, 'created_timestamp'=>@created_timestamp,'building_type'=>@building_type,'climate_zone'=>@climate_zone, 'geometry_profile'=>@geometry_profile, 'input_variables'=>@input_variables.to_hash,'output_variables'=>@output_variables.to_hash,
-      'daylight_autonomy'=>@daylight_autonomy, 'geo_coords'=>@geo_coords.to_hash
+      'daylight_autonomy'=>@daylight_autonomy,'geo_coords'=>@geo_coords.to_hash
     }
   end
 end
@@ -81,11 +80,11 @@ class EnvelopeDefinition
 end
 
 class SiteSourceEnergy
-  attr_accessor :units,:site_energy_per_conditioned_building_area,:source_energy_per_conditioned_building_area
+  attr_accessor :units,:total_site_energy_per_conditioned_building_area,:total_source_energy_per_conditioned_building_area,:net_site_energy_per_conditioned_building_area,:net_source_energy_per_conditioned_building_area
 
   def to_hash
     {
-        'units'=>@units,'site_energy_per_conditioned_building_area'=>@site_energy_per_conditioned_building_area,'source_energy_per_conditioned_building_area'=>@source_energy_per_conditioned_building_area
+        'units'=>@units,'total_site_energy_per_conditioned_building_area'=>@total_site_energy_per_conditioned_building_area,'total_source_energy_per_conditioned_building_area'=>@total_source_energy_per_conditioned_building_area,'net_site_energy_per_conditioned_building_area'=>@net_site_energy_per_conditioned_building_area,'net_source_energy_per_conditioned_building_area'=>@net_source_energy_per_conditioned_building_area
     }
   end
 
@@ -174,4 +173,22 @@ class UnmetHours
   def to_hash
     { units:@units,occ_cool:@occ_cool,occ_heat:@occ_heat,occ_total:@occ_total }
   end
+end
+
+
+class LEEDsummary
+    attr_accessor :pv_LEED_summary_annual_energy_generated
+
+    def to_hash
+        {
+            "L-1. Renewable Energy Source Summary":
+            {
+                "Annual Energy Generated":
+                {
+                    'units'=>"GJ",
+                    pv_LEED_summary_annual_energy_generated:@pv_LEED_summary_annual_energy_generated
+                }
+            }
+        }
+    end
 end
