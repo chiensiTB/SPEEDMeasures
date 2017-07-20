@@ -114,8 +114,9 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    post = true
-	osServerRun = true
+    post = false
+	osServerRun = false
+	writeOutObj = true
 
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
@@ -749,7 +750,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 		outObj.geometry_profile = entireGeometryProfileJSON["geometryProfile"][currentModelName]
 	rescue
 		runner.registerInfo("Geometry profile is null unable to get geometry profile")
-        outObj.geometry_profile = {}
+        outObj.geometry_profile = "{}"
 	end
 
     ## Since we are using the replace OpenStudio model measure this, this value is: multi-model-run not any particular OSM name
@@ -792,7 +793,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
 
-	if (!osServerRun)
+	if (writeOutObj)
 		# Output a Json on the server until the json can be pushed to mongo db
 		json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
 
@@ -807,7 +808,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
           end
         end
     end
-
+	
     if(post)
         runner.registerInfo("Attempting to push to mongo...")
       #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
