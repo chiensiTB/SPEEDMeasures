@@ -116,7 +116,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   def run(runner, user_arguments)
     post = false
 	osServerRun = false
-	writeOutObj = true
+	writeOutObj = false
 
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
