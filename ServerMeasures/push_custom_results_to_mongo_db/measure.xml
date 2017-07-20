@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>push_custom_results_to_mongo_db</name>
   <uid>b3553b5c-59f9-4bf5-8a74-1dfb184857a0</uid>
-  <version_id>05e36355-af36-4127-9938-a6c377aad038</version_id>
-  <version_modified>20170614T183704Z</version_modified>
+  <version_id>a36116b1-3013-4d61-9c49-99c0efd1e043</version_id>
+  <version_modified>20170720T020821Z</version_modified>
   <xml_checksum>345CCCA5</xml_checksum>
   <class_name>PushCustomResultsToMongoDB</class_name>
   <display_name>PushCustomResultsToMongoDB</display_name>
@@ -17,14 +17,6 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>{}</default_value>
-    </argument>
-    <argument>
-      <name>os_model</name>
-      <display_name>os_model</display_name>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>multi-model mode</default_value>
     </argument>
     <argument>
       <name>user_id</name>
@@ -104,18 +96,6 @@
       <checksum>8B9601D2</checksum>
     </file>
     <file>
-      <filename>push_custom_results_to_mongo_db_test.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>test</usage_type>
-      <checksum>D9446107</checksum>
-    </file>
-    <file>
-      <filename>Output.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3DC692F2</checksum>
-    </file>
-    <file>
       <filename>TestOSM_HVAC.osm</filename>
       <filetype>osm</filetype>
       <usage_type>test</usage_type>
@@ -158,6 +138,12 @@
       <checksum>463388F8</checksum>
     </file>
     <file>
+      <filename>push_custom_results_to_mongo_db_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>43E19A10</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>1.11.5</identifier>
@@ -166,7 +152,13 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EEEFDFB3</checksum>
+      <checksum>158B422F</checksum>
+    </file>
+    <file>
+      <filename>Output.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7804E3F3</checksum>
     </file>
   </files>
 </measure>
