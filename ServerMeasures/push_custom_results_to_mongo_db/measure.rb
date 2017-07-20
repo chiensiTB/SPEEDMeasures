@@ -114,8 +114,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
   # define what happens when the measure is run
   def run(runner, user_arguments)
-    post = false
-	osServerRun = false
+    post = true
+	osServerRun = true
 	writeOutObj = false
 
     super(runner, user_arguments)
