@@ -743,6 +743,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # The name of the current model that is being run now - filter out the first 3 characters of this string as this is ../
     currentModelName = runner.workflow.seedFile.get.to_s[3..-1]
+
     runner.registerInfo("Geometry model name #{currentModelName}")
     # Query the entire Geometry Profile to get the Geometry profile of just the model being run now
     begin
@@ -792,6 +793,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
+
 
     if (writeOutObj)
       # Output a Json on the server until the json can be pushed to mongo db

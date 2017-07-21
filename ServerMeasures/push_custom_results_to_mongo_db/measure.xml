@@ -2,8 +2,13 @@
   <schema_version>3.0</schema_version>
   <name>push_custom_results_to_mongo_db</name>
   <uid>b3553b5c-59f9-4bf5-8a74-1dfb184857a0</uid>
+<<<<<<< HEAD
   <version_id>cc677981-2bf2-4355-956f-10dd8c30fff7</version_id>
   <version_modified>20170721T061556Z</version_modified>
+=======
+  <version_id>a36116b1-3013-4d61-9c49-99c0efd1e043</version_id>
+  <version_modified>20170720T020821Z</version_modified>
+>>>>>>> c01bc46b9706137b6ca1287ebc2a341bc9e1813b
   <xml_checksum>345CCCA5</xml_checksum>
   <class_name>PushCustomResultsToMongoDB</class_name>
   <display_name>PushCustomResultsToMongoDB</display_name>
@@ -84,10 +89,35 @@
   </attributes>
   <files>
     <file>
+<<<<<<< HEAD
       <filename>push_custom_results_to_mongo_db_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
       <checksum>43E19A10</checksum>
+=======
+      <filename>report.html</filename>
+      <filetype>html</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>3501204C</checksum>
+    </file>
+    <file>
+      <filename>report_out.html</filename>
+      <filetype>html</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>8B9601D2</checksum>
+    </file>
+    <file>
+      <filename>TestOSM_HVAC.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>150C7B11</checksum>
+    </file>
+    <file>
+      <filename>TestOSM_IdealLoads.osm</filename>
+      <filetype>osm</filetype>
+      <usage_type>test</usage_type>
+      <checksum>09D1AD42</checksum>
+>>>>>>> c01bc46b9706137b6ca1287ebc2a341bc9e1813b
     </file>
     <file>
       <filename>Example_report_SPEEDOutputs.json</filename>
@@ -102,6 +132,12 @@
       <checksum>D3C92BDA</checksum>
     </file>
     <file>
+      <filename>push_custom_results_to_mongo_db_test.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>test</usage_type>
+      <checksum>43E19A10</checksum>
+    </file>
+    <file>
       <version>
         <software_program>OpenStudio</software_program>
         <identifier>1.11.5</identifier>
@@ -110,7 +146,17 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
+<<<<<<< HEAD
       <checksum>8BB44CED</checksum>
+=======
+      <checksum>158B422F</checksum>
+    </file>
+    <file>
+      <filename>Output.rb</filename>
+      <filetype>rb</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>7804E3F3</checksum>
+>>>>>>> c01bc46b9706137b6ca1287ebc2a341bc9e1813b
     </file>
   </files>
 </measure>
