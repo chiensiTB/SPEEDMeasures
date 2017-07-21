@@ -93,7 +93,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
 
   def sql_query_string(runner, sql, report_name, query)
-	# sql_query method when a string is expected
+  # sql_query method when a string is expected
     val = nil
     result = sql.execAndReturnFirstString("SELECT Value FROM TabularDataWithStrings WHERE ReportName='#{report_name}' AND #{query}")
     if result.empty?
@@ -115,13 +115,14 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
   # define what happens when the measure is run
   def run(runner, user_arguments)
     post = true
-	  osServerRun = true
+    osServerRun = false
+    writeOutObj = true
 
     super(runner, user_arguments)
     runner.registerInfo("Starting PushCustomResultsToMongoDB...")
     # use the built-in error checking
     if !runner.validateUserArguments(arguments(), user_arguments)
-	      runner.registerError("Something went wrong when validating user arguments.")
+        runner.registerError("Something went wrong when validating user arguments.")
       p "Error validating user arguments"
       return false
     end
@@ -138,7 +139,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     building = model.getBuilding
     site = model.getSite
 
-	workspace = runner.lastEnergyPlusWorkspace
+    workspace = runner.lastEnergyPlusWorkspace
     if workspace.empty?
       runner.registerError("Cannot find last workspace.")
       return false
@@ -179,8 +180,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     buildingType = building.suggestedStandardsBuildingTypes
 
-
-	  runner.registerInfo("Done grabbing building and site data from model")
+    runner.registerInfo("Done grabbing building and site data from model")
 
     # SQL calls
     # put data into the local variable 'output', all local variables are available for erb to use when configuring the input html file
@@ -258,6 +258,8 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     demandEndUseComponentsSummaryTable.end_uses_total_end_uses_elect = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Total End Uses' AND TableName = 'End Uses' AND ColumnName = 'Electricity'")
 
     demandEndUseComponentsSummaryTable.end_uses_total_end_uses_gas = sql_query(runner, sqlFile,'DemandEndUseComponentsSummary',"RowName = 'Total End Uses' AND TableName = 'End Uses' AND ColumnName = 'Natural Gas'")
+
+
 
     # END OF DEMAND END USE COMPONENTS SUMMARY SECTION
 
@@ -415,10 +417,19 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     generators_water = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Generators' AND ColumnName='Water'" )
     total_water = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='End Uses' AND RowName='Total End Uses' AND ColumnName='Water'" )
 
+    leedsummary = LEEDsummary.new
+
+    leedsummary.pv_LEED_summary_annual_energy_generated = sql_query(runner, sqlFile, 'LEEDsummary', "TableName='L-1. Renewable Energy Source Summary' AND RowName= 'Photovoltaic' AND ColumnName = 'Annual Energy Generated'")
+
+    output.leed_summary = leedsummary
+
     siteandsource = SiteSourceEnergy.new
     siteandsource.units = "MJ/m2"
-    siteandsource.site_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName= 'Site and Source Energy' and RowName= 'Total Site Energy' and ColumnName= 'Energy Per Conditioned Building Area'" )
-    siteandsource.source_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='Site and Source Energy' AND RowName='Total Source Energy' AND ColumnName='Energy Per Conditioned Building Area'" )
+    siteandsource.total_site_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName= 'Site and Source Energy' and RowName= 'Total Site Energy' and ColumnName= 'Energy Per Conditioned Building Area'" )
+    siteandsource.total_source_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='Site and Source Energy' AND RowName='Total Source Energy' AND ColumnName='Energy Per Conditioned Building Area'" )
+
+    siteandsource.net_site_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='Site and Source Energy' AND RowName='Net Site Energy' AND ColumnName='Energy Per Conditioned Building Area'" )
+    siteandsource.net_source_energy_per_conditioned_building_area = sql_query(runner, sqlFile, 'AnnualBuildingUtilityPerformanceSummary',"TableName='Site and Source Energy' AND RowName='Net Source Energy' AND ColumnName='Energy Per Conditioned Building Area'" )
 
     unmet = UnmetHours.new
     unmet.units = "Hours"
@@ -498,7 +509,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     annualBuildingUtiltyPerformanceSummary.UnmetHours = unmet
 
-	    # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
+      # Assign annual_building_utilty_performance_summary, demandEndUseComponentsSummaryTable and sourceEnergyUseComponentsSummary tables to output obj
 
     output.annual_building_utilty_performance_summary = annualBuildingUtiltyPerformanceSummary
     output.demandEndUseComponentsSummaryTable = demandEndUseComponentsSummaryTable
@@ -654,13 +665,13 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # END OF SECTION BUILDING ENERGY PERFORMANCE ELECTRICITY, NATURAL GAS, USE AND DEMAND SECTION
 
-	runner.registerInfo("Done grabbing sql data")
+  runner.registerInfo("Done grabbing sql data")
 
     ## END OF ANNUAL BUILDING PERFORMANCE SUMMARY SECTION
 
     # GET inputs SECTION - TODO parse inputs using the code below
 
-	# For now will use Chien Si's hacky code seen on lines 711-720 :until code on line 552-548 can be worked out
+  # For now will use Chien Si's hacky code seen on lines 711-720 :until code on line 552-548 can be worked out
 
     # Code example seen here: https://unmethours.com/question/24882/file-structure-comparison-of-os-measures-run-on-desktop-vs-os-server/
     # Given time constraint currently we will use Chien Si's code to pull inputs on server
@@ -698,7 +709,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     #   end
     # end
 
-	runner.registerInfo("Grabbing user inputs")
+  runner.registerInfo("Grabbing user inputs")
 
     #TODO: improve to use Dir and FileUtils in lieu of chomping the path
     #TODO: allow user to set path for different environments.
@@ -715,7 +726,7 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
 
     # END OF GET INPUTS SECTION
 
-	# Build outObj the object to make the final json
+  # Build outObj the object to make the final json
 
     outObj = Output.new
     outObj.input_variables = inputVars
@@ -726,14 +737,21 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     outObj.building_type = runner.getStringArgumentValue("building_type", user_arguments)
     outObj.climate_zone = runner.getStringArgumentValue("ashrae_climate_zone", user_arguments)
     # Ensure that the geometry profile is only for this particular osm model!
-    entireGeometryProfileString = runner.getStringArgumentValue("entire_geometry_profile", user_arguments)
+    entireGeometryProfileString = runner.getStringArgumentValue("geometry_profile", user_arguments)
     # Query the entire geometry profile to get the geometry profile for just the model being run NOW
     entireGeometryProfileJSON = JSON.parse(entireGeometryProfileString)
 
     # The name of the current model that is being run now - filter out the first 3 characters of this string as this is ../
-    currentModelName = runner.registerInfo(runner.workflow.seedFile.get.to_s[3..-1])
+    currentModelName = runner.workflow.seedFile.get.to_s[3..-1]
+    runner.registerInfo("Geometry model name #{currentModelName}")
     # Query the entire Geometry Profile to get the Geometry profile of just the model being run now
-    outObj.geometry_profile = entireGeometryProfile["geometryProfile"][currentModelName]
+    begin
+
+      outObj.geometry_profile = entireGeometryProfileJSON["geometryProfile"][currentModelName]
+    rescue
+      runner.registerInfo("Geometry profile is null unable to get geometry profile")
+          outObj.geometry_profile = "{}"
+    end
 
     ## Since we are using the replace OpenStudio model measure this, this value is: multi-model-run not any particular OSM name
     outObj.output_variables = output
@@ -775,48 +793,41 @@ class PushCustomResultsToMongoDB < OpenStudio::Ruleset::ReportingUserScript
     # CODE to write out JSON file if need be
     # Write SPEED results JSON - should write in analysis folder.
 
-	# if (osServerRun)
-	# 	# Output a Json on the server until the json can be pushed to mongo db
-	# 	json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
-    #
-    # else
-	# 	json_out_path = './report_SPEEDOutputs.json'
-	# end
+    if (writeOutObj)
+      # Output a Json on the server until the json can be pushed to mongo db
+      json_out_path = File.join(sqlFile.path.to_s[0..(sqlFile.path.to_s.length - 17)],'report_SPEEDOutputs.json')
 
-    # File.open(json_out_path,"w") do |file|
-    #
-    #   file.write(JSON.pretty_generate(outObj.to_hash))
-    #
-    #   begin
-    #     file.fsync
-    #   rescue
-    #     file.flush
-    #   end
-    # end
+      File.open(json_out_path,"w") do |file|
 
-    runner.registerInfo("Attempting to push to mongo...")
-    if(post)
-      #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
-      encoded_url = "http://35.160.2.217:3000/simulation"
-      uri = URI.parse(encoded_url)
-      http = Net::HTTP.new(uri.host,uri.port)
-      request = Net::HTTP::Post.new(uri.request_uri,'Content-Type' => 'application/json')
-      request.body = outObj.to_hash
-      resp = http.request(request)
+        file.write(JSON.pretty_generate(outObj.to_hash))
 
-      runner.registerInfo("Response from post: #{resp}")
+        begin
+          file.fsync
+        rescue
+          file.flush
+        end
+      end
     end
-
-
-    runner.registerInfo("Attempting to push to mongo...")
+  
     if(post)
+        runner.registerInfo("Attempting to push to mongo...")
       #this url is hard-coded, should be a url without the actual IP address, like pwosserver.com/simulation, but for demo this is fine.
       encoded_url = "http://35.160.2.217:3000/simulation"
+      
       uri = URI.parse(encoded_url)
-      http = Net::HTTP.new(uri.host,uri.port)
-      request = Net::HTTP::Post.new(uri.request_uri,'Content-Type' => 'application/json')
-      request.body = outObj.to_hash
-      resp = http.request(request)
+      req = Net::HTTP::Post.new(uri.request_uri, 'Content-Type' => 'application/json')
+      runner.registerInfo("#{outObj.to_hash.to_json}")
+      req.body = outObj.to_hash.to_json
+      resp = Net::HTTP.start(uri.host, uri.port) do |http|
+        http.request(req)
+      end
+
+
+      # http = Net::HTTP.new(uri.host,uri.port)
+      # request = Net::HTTP::Post.new(uri.request_uri,'Content-Type' => 'application/json')
+      # runner.registerInfo("#{outObj.to_hash.to_json}")
+      # request.body = outObj.to_hash.to_json
+      # resp = http.request(request)
 
       runner.registerInfo("Response from post: #{resp}")
     end

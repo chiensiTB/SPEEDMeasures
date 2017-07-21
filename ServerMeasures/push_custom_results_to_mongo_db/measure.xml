@@ -2,8 +2,8 @@
   <schema_version>3.0</schema_version>
   <name>push_custom_results_to_mongo_db</name>
   <uid>b3553b5c-59f9-4bf5-8a74-1dfb184857a0</uid>
-  <version_id>05e36355-af36-4127-9938-a6c377aad038</version_id>
-  <version_modified>20170614T183704Z</version_modified>
+  <version_id>cc677981-2bf2-4355-956f-10dd8c30fff7</version_id>
+  <version_modified>20170721T061556Z</version_modified>
   <xml_checksum>345CCCA5</xml_checksum>
   <class_name>PushCustomResultsToMongoDB</class_name>
   <display_name>PushCustomResultsToMongoDB</display_name>
@@ -17,14 +17,6 @@
       <required>true</required>
       <model_dependent>false</model_dependent>
       <default_value>{}</default_value>
-    </argument>
-    <argument>
-      <name>os_model</name>
-      <display_name>os_model</display_name>
-      <type>String</type>
-      <required>true</required>
-      <model_dependent>false</model_dependent>
-      <default_value>multi-model mode</default_value>
     </argument>
     <argument>
       <name>user_id</name>
@@ -92,70 +84,22 @@
   </attributes>
   <files>
     <file>
-      <filename>report.html</filename>
-      <filetype>html</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>3501204C</checksum>
-    </file>
-    <file>
-      <filename>report_out.html</filename>
-      <filetype>html</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>8B9601D2</checksum>
-    </file>
-    <file>
       <filename>push_custom_results_to_mongo_db_test.rb</filename>
       <filetype>rb</filetype>
       <usage_type>test</usage_type>
-      <checksum>D9446107</checksum>
+      <checksum>43E19A10</checksum>
+    </file>
+    <file>
+      <filename>Example_report_SPEEDOutputs.json</filename>
+      <filetype>json</filetype>
+      <usage_type>resource</usage_type>
+      <checksum>4FC0F80A</checksum>
     </file>
     <file>
       <filename>Output.rb</filename>
       <filetype>rb</filetype>
       <usage_type>resource</usage_type>
-      <checksum>3DC692F2</checksum>
-    </file>
-    <file>
-      <filename>TestOSM_HVAC.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>150C7B11</checksum>
-    </file>
-    <file>
-      <filename>TestOSM_IdealLoads.osm</filename>
-      <filetype>osm</filetype>
-      <usage_type>test</usage_type>
-      <checksum>09D1AD42</checksum>
-    </file>
-    <file>
-      <filename>USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw</filename>
-      <filetype>epw</filetype>
-      <usage_type>test</usage_type>
-      <checksum>C254B53F</checksum>
-    </file>
-    <file>
-      <filename>os_lib_helper_methods.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>A6430141</checksum>
-    </file>
-    <file>
-      <filename>os_lib_reporting.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>818C6AEE</checksum>
-    </file>
-    <file>
-      <filename>os_lib_schedules.rb</filename>
-      <filetype>rb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>C4185CAA</checksum>
-    </file>
-    <file>
-      <filename>report.html.erb</filename>
-      <filetype>erb</filetype>
-      <usage_type>resource</usage_type>
-      <checksum>463388F8</checksum>
+      <checksum>D3C92BDA</checksum>
     </file>
     <file>
       <version>
@@ -166,7 +110,7 @@
       <filename>measure.rb</filename>
       <filetype>rb</filetype>
       <usage_type>script</usage_type>
-      <checksum>EEEFDFB3</checksum>
+      <checksum>8BB44CED</checksum>
     </file>
   </files>
 </measure>
